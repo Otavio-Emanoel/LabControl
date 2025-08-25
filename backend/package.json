@@ -1,0 +1,23 @@
+{
+  "name": "labcontrol-api",
+  "version": "1.0.0",
+  "description": "A backend do LabControl desenvolvida em TypeScript.",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node src/app.ts",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.5.4",
+    "ts-node": "^10.4.0",
+    "@types/node": "^16.11.7",
+    "@types/express": "^4.17.13"
+  },
+  "author": "",
+  "license": "ISC"
+}
