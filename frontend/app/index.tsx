@@ -1,9 +1,12 @@
-import { Text, View } from "react-native";
+import { Text, View, ScrollView } from "react-native";
 
 export default function Index() {
   return (
-    <View className="flex-1">
-      <Text>oie</Text>
-    </View>
+    <ScrollView className="h-screen">
+      <View className="bg-[#1E5CF9] h-48">
+        <Text>salaaaa</Text>
+      </View>
+      <Text>Olá</Text>
+    </ScrollView>
   );
 }
