@@ -1,6 +1,7 @@
 import express from 'express';
 import 'dotenv/config';
 import testRouter from './test/test.router';
+import authRouter from './routes/auth.routes';
 import { pool } from './database/connection';
 
 const app = express();
@@ -15,6 +16,8 @@ app.get('/', (_req, res) => {
 
 // monta as rotas de teste em /test
 app.use('/test', testRouter);
+// rotas de autenticação
+app.use('/auth', authRouter);
 
 const server = app.listen(port, () => {
   console.log(`O servidor tá rodando em http://localhost:${port}`);
