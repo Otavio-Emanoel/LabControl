@@ -17,7 +17,7 @@ export const pool = mysql.createPool({
   host: DB_HOST || 'localhost',
   user: DB_USER || 'root',
   password: DB_PASSWORD || '',
-  database: DB_NAME || '',
+  database: DB_NAME || 'lab_control',
   port: Number(DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
