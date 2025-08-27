@@ -1,25 +1,27 @@
-import { View, Text, TouchableOpacity } from "react-native"
-import { Ionicons } from '@expo/vector-icons';
+import { View, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
+export default function Nav() {
+  return (
+    <View className="absolute bottom-6 left-0 right-0 items-center">
+      {/* Barra de navegação */}
+      <View className="flex-row bg-white rounded-3xl px-6 py-3 shadow-lg w-[90%] justify-between">
+        {/* Botão Home (Destaque) */}
+        <TouchableOpacity className="w-16 h-16 bg-[#1C4AED] rounded-3xl items-center justify-center">
+          <Ionicons name="home" size={28} color="white" />
+        </TouchableOpacity>
 
-export default function Nav(){
-    return (
-        <View className="flex-1 flex-row fixed bottom-0 w-full px-16 items-center justify-center gap-8">
-            <TouchableOpacity className="bg-[#1C4AEDB2] w-16 h-16 flex items-center justify-center rounded-3xl">   {/* Ícone de Casa */}
-                <Ionicons name="home-outline" size={30} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-[#1C4AEDB2] w-16 h-16 flex items-center justify-center rounded-3xl">
-                         {/* Ícone de Lupa (Buscar) */}
-            <Ionicons name="search-outline" size={30} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-[#1C4AEDB2] w-16 h-16 flex items-center justify-center rounded-3xl">
-                         {/* Ícone de Relógio */}
-            <Ionicons name="time-outline" size={30} color="black" />
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-[#1C4AEDB2] w-16 h-16 flex items-center justify-center rounded-3xl">  
-                  {/* Ícone de Usuário */}
-            <Ionicons name="person-outline" size={30} color="black" />
-            </TouchableOpacity>
-        </View>
-    )
+        {/* Outros ícones */}
+        <TouchableOpacity className="w-14 h-14 bg-[#1C4AEDB2] rounded-3xl items-center justify-center">
+          <Ionicons name="search" size={26} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity className="w-14 h-14 bg-[#1C4AEDB2] rounded-3xl items-center justify-center">
+          <Ionicons name="time" size={26} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity className="w-14 h-14 bg-[#1C4AEDB2] rounded-3xl items-center justify-center">
+          <Ionicons name="person" size={26} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
