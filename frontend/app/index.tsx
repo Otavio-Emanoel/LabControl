@@ -46,7 +46,7 @@ export default function Index() {
         </View>
 
         <Text className="text-xs text-white/80 font-madimi">Olá User</Text>
-        <Text className="text-3xl text-white font-bold font-madimi">
+        <Text className="text-3xl text-white font-madimi">
           Bem vindo!
         </Text>
 
@@ -124,7 +124,7 @@ export default function Index() {
       </View>
 
       {/* Navbar inferior */}
-      <Nav />
+      <Nav active="home"/>
     </View>
   );
 }
