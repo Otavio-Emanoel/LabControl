@@ -1,1 +1,0 @@
-{"version":3,"sources":["findNodeHandle.ts"],"names":["findNodeHandle"],"mappings":"AAAA,SAASA,cAAT,QAA+B,cAA/B;AAEA,eAAeA,cAAf","sourcesContent":["import { findNodeHandle } from 'react-native';\n\nexport default findNodeHandle;\n"]}

@@ -1,1 +1,0 @@
-export declare const hairlineWidth: any, platformSelect: any, pixelScaleSelect: any, fontScaleSelect: any, pixelScale: any, fontScale: any, roundToNearestPixel: any, platformColor: any, getPixelSizeForLayoutSize: any;

@@ -1,1 +1,0 @@
-{"version":3,"sources":["index.ts"],"names":[],"mappings":";;;;;;;;;;;;AAIA","sourcesContent":["export type {\n  PressableProps,\n  PressableStateCallbackType,\n} from './PressableProps';\nexport { default } from './Pressable';\n"]}
