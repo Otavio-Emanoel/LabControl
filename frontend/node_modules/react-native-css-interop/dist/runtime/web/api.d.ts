@@ -1,0 +1,10 @@
+import { CssInterop } from "../../types";
+export { StyleSheet } from "./stylesheet";
+export { colorScheme } from "./color-scheme";
+export { rem } from "./rem";
+export { useColorScheme } from "./useColorScheme";
+export declare const cssInterop: CssInterop;
+export declare const remapProps: CssInterop;
+export declare const useUnstableNativeVariable: (name: string) => undefined;
+export declare function vars<T extends Record<`--${string}`, string | number>>(variables: T): Record<string, string>;
+export declare function useSafeAreaEnv(): {} | undefined;

@@ -1,10 +1,11 @@
 import { View, Text, ScrollView, TextInput, TouchableOpacity } from "react-native";
-import Nav from "@/components/nav";
+import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function Index() {
   return (
     <View className="flex-1 bg-white">
+      <Sidebar />
       {/* Fundo com gradiente */}
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -100,7 +101,6 @@ export default function Index() {
       </ScrollView>
 
       {/* Navbar inferior */}
-      <Nav/>
     </View>
   );
 }

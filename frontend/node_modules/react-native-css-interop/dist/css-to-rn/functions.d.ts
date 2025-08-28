@@ -1,0 +1,10 @@
+import type { PlatformOSType } from "react-native";
+export declare function hairlineWidth(): string;
+export declare function platformSelect(specifics: Partial<Record<PlatformOSType | "default", unknown>>): string;
+export declare function pixelScaleSelect(specifics: Partial<Record<number | "default", unknown>>): string;
+export declare function fontScaleSelect(specifics: Partial<Record<number | "default", unknown>>): string;
+export declare function pixelScale(value?: number): string;
+export declare function fontScale(value?: number): string;
+export declare function getPixelSizeForLayoutSize(value: number): string;
+export declare function roundToNearestPixel(value: number): string;
+export declare function platformColor(...colors: string[]): string;
