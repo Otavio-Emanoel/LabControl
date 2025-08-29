@@ -12,8 +12,8 @@ export async function register(req: Request, res: Response) {
         }
         const hashedPassword = await bcrypt.hash(senha, 10);
         await pool.query(
-            'INSERT INTO usuarios (nome, email, senha, cargo) VALUES (?, ?, ?)',
-            [nome, email, hashedPassword, cargo]
+            'INSERT INTO usuarios (id_usuario, email, nome, senha, cargo) VALUES (?, ?, ?, ?, ?)',
+            [null, email, nome, hashedPassword, cargo]
         );
         return res.status(201).json({ message: 'Usuário registrado com sucesso!' });
     } catch (err) {
