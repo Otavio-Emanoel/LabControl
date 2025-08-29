@@ -7,3 +7,12 @@ export type Agendamento = {
     id_Laboratorio: number;
     numero_laboratorio: string; // nome do laboratório
 };
+
+export type DbAgendamento = {
+    horario: string;
+    dia: string;
+    fk_aulas: number;
+    justificativa: string;
+    fk_laboratorio: number;
+    fk_usuario: number;
+}

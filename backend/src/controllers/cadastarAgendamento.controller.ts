@@ -1,4 +1,5 @@
 import { pool } from "../database/connection";
+import { DbAgendamento } from "../models/agendamentos.model";
 
 export default async function cadastrarAgendamento(
     {horario,
@@ -7,14 +8,7 @@ export default async function cadastrarAgendamento(
         justificativa,
         fk_laboratorio,
         fk_usuario
-    }: {
-    horario: string;
-    dia: string;
-    fk_aulas: number;
-    justificativa: string;
-    fk_laboratorio: number;
-    fk_usuario: number;
-    }) {
+    }: DbAgendamento) {
     const sql = `
         INSERT INTO agendamentos (
             horario,

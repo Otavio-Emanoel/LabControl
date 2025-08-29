@@ -2,24 +2,18 @@ import { Request, Response } from 'express';
 import jwt, { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
 import { pool } from '../database/connection';
 import bcrypt from 'bcrypt';
-
-type DbUser = {
-    id_usuario: number;
-    nome: string;
-    cargo: string;
-    senha: string;
-};
+import { DbUser } from '../models/user.model';
 
 export async function register(req: Request, res: Response) {
     try {
-        const { nome, senha, cargo } = req.body as { nome: string; senha: string; cargo: string };
-        if (!nome || !senha || !cargo) {
-            return res.status(400).json({ error: 'Informe nome, senha e cargo.' });
+        const { nome, email, senha, cargo } = req.body as { nome: string; email: string; senha: string; cargo: string };
+        if (!nome || !email || !senha || !cargo) {
+            return res.status(400).json({ error: 'Informe nome, email, senha e cargo.' });
         }
         const hashedPassword = await bcrypt.hash(senha, 10);
         await pool.query(
-            'INSERT INTO usuarios (nome, senha, cargo) VALUES (?, ?, ?)',
-            [nome, hashedPassword, cargo]
+            'INSERT INTO usuarios (nome, email, senha, cargo) VALUES (?, ?, ?)',
+            [nome, email, hashedPassword, cargo]
         );
         return res.status(201).json({ message: 'Usuário registrado com sucesso!' });
     } catch (err) {
@@ -30,13 +24,13 @@ export async function register(req: Request, res: Response) {
 
 export async function login(req: Request, res: Response) {
     try {
-        const { nome, senha } = req.body as { nome?: string; senha?: string };
-        if (!nome || !senha) {
-            return res.status(400).json({ error: 'Informe nome e senha.' });
+        const { email, senha } = req.body as { email?: string; senha?: string };
+        if (!email || !senha) {
+            return res.status(400).json({ error: 'Informe email e senha.' });
         }
         const [rows] = await pool.query(
-            'SELECT id_usuario, nome, cargo, senha FROM usuarios WHERE nome = ? LIMIT 1',
-            [nome]
+            'SELECT id_usuario, nome, email, cargo, senha FROM usuarios WHERE email = ? LIMIT 1',
+            [email]
         );
         const user = Array.isArray(rows) && rows.length ? (rows[0] as DbUser) : null;
         if (!user) {
@@ -58,6 +52,7 @@ export async function login(req: Request, res: Response) {
             user: {
                 id_usuario: user.id_usuario,
                 nome: user.nome,
+                email: user.email,
                 cargo: user.cargo,
             },
         });
@@ -67,4 +62,3 @@ export async function login(req: Request, res: Response) {
     }
 }
 
-// bcrypt feito
