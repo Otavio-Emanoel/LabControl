@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.2.0
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 28-Ago-2025 às 19:25
--- Versão do servidor: 10.4.21-MariaDB
--- versão do PHP: 7.3.31
+-- Generation Time: Aug 30, 2025 at 01:28 AM
+-- Server version: 10.4.27-MariaDB
+-- PHP Version: 8.2.0
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Banco de dados: `lab_control`
+-- Database: `lab_control`
 --
 CREATE DATABASE IF NOT EXISTS `lab_control` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE `lab_control`;
@@ -26,19 +26,19 @@ USE `lab_control`;
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `horarios`
+-- Table structure for table `horarios`
 --
 
 CREATE TABLE `horarios` (
   `id_Horarios` int(11) NOT NULL,
   `Horas` datetime NOT NULL,
   `Reserva_id_Reserva` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `horarios_fixos`
+-- Table structure for table `horarios_fixos`
 --
 
 CREATE TABLE `horarios_fixos` (
@@ -47,21 +47,21 @@ CREATE TABLE `horarios_fixos` (
   `fk_usuario` int(11) NOT NULL,
   `fk_lab` int(11) NOT NULL,
   `horario` time NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `laboratorio`
+-- Table structure for table `laboratorio`
 --
 
 CREATE TABLE `laboratorio` (
   `id_Laboratorio` int(11) NOT NULL,
   `numero` varchar(30) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Extraindo dados da tabela `laboratorio`
+-- Dumping data for table `laboratorio`
 --
 
 INSERT INTO `laboratorio` (`id_Laboratorio`, `numero`) VALUES
@@ -74,7 +74,7 @@ INSERT INTO `laboratorio` (`id_Laboratorio`, `numero`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `reserva`
+-- Table structure for table `reserva`
 --
 
 CREATE TABLE `reserva` (
@@ -85,47 +85,48 @@ CREATE TABLE `reserva` (
   `justificativa` varchar(300) DEFAULT NULL,
   `fk_laboratorio` int(11) NOT NULL,
   `fk_usuario` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Estrutura da tabela `usuarios`
+-- Table structure for table `usuarios`
 --
 
 CREATE TABLE `usuarios` (
   `id_usuario` int(11) NOT NULL,
   `nome` varchar(45) NOT NULL,
   `cargos` varchar(45) DEFAULT NULL,
+  `email` varchar(100) NOT NULL,
   `senha` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Índices para tabelas despejadas
+-- Indexes for dumped tables
 --
 
 --
--- Índices para tabela `horarios`
+-- Indexes for table `horarios`
 --
 ALTER TABLE `horarios`
   ADD PRIMARY KEY (`id_Horarios`),
   ADD KEY `Reserva_id_Reserva` (`Reserva_id_Reserva`);
 
 --
--- Índices para tabela `horarios_fixos`
+-- Indexes for table `horarios_fixos`
 --
 ALTER TABLE `horarios_fixos`
   ADD PRIMARY KEY (`id_horario_fixo`),
   ADD KEY `usuarios_id_usuario` (`fk_usuario`);
 
 --
--- Índices para tabela `laboratorio`
+-- Indexes for table `laboratorio`
 --
 ALTER TABLE `laboratorio`
   ADD PRIMARY KEY (`id_Laboratorio`);
 
 --
--- Índices para tabela `reserva`
+-- Indexes for table `reserva`
 --
 ALTER TABLE `reserva`
   ADD PRIMARY KEY (`id_Reserva`),
@@ -133,63 +134,63 @@ ALTER TABLE `reserva`
   ADD KEY `usuarios_id_usuario` (`fk_usuario`);
 
 --
--- Índices para tabela `usuarios`
+-- Indexes for table `usuarios`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id_usuario`);
 
 --
--- AUTO_INCREMENT de tabelas despejadas
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT de tabela `horarios`
+-- AUTO_INCREMENT for table `horarios`
 --
 ALTER TABLE `horarios`
   MODIFY `id_Horarios` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `horarios_fixos`
+-- AUTO_INCREMENT for table `horarios_fixos`
 --
 ALTER TABLE `horarios_fixos`
   MODIFY `id_horario_fixo` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `laboratorio`
+-- AUTO_INCREMENT for table `laboratorio`
 --
 ALTER TABLE `laboratorio`
   MODIFY `id_Laboratorio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
--- AUTO_INCREMENT de tabela `reserva`
+-- AUTO_INCREMENT for table `reserva`
 --
 ALTER TABLE `reserva`
   MODIFY `id_Reserva` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT de tabela `usuarios`
+-- AUTO_INCREMENT for table `usuarios`
 --
 ALTER TABLE `usuarios`
   MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- Restrições para despejos de tabelas
+-- Constraints for dumped tables
 --
 
 --
--- Limitadores para a tabela `horarios`
+-- Constraints for table `horarios`
 --
 ALTER TABLE `horarios`
   ADD CONSTRAINT `horarios_ibfk_1` FOREIGN KEY (`Reserva_id_Reserva`) REFERENCES `reserva` (`id_Reserva`);
 
 --
--- Limitadores para a tabela `horarios_fixos`
+-- Constraints for table `horarios_fixos`
 --
 ALTER TABLE `horarios_fixos`
   ADD CONSTRAINT `horarios_fixos_ibfk_1` FOREIGN KEY (`fk_usuario`) REFERENCES `usuarios` (`id_usuario`);
 
 --
--- Limitadores para a tabela `reserva`
+-- Constraints for table `reserva`
 --
 ALTER TABLE `reserva`
   ADD CONSTRAINT `reserva_ibfk_1` FOREIGN KEY (`fk_laboratorio`) REFERENCES `laboratorio` (`id_Laboratorio`),
