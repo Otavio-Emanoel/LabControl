@@ -4,7 +4,6 @@ import testRouter from './test/test.router';
 import authRouter from './routes/auth.routes';
 import agendamentosRouter from './routes/agendamento.routes';
 import horariosFixosRouter from './routes/horariosfixos.routes'
-import cadastrarAgendamentoRouter from './routes/cadastrarAgendamento.routes';
 import { pool } from './database/connection';
 
 const app = express();
@@ -21,12 +20,10 @@ app.get('/', (_req, res) => {
 app.use('/test', testRouter);
 // rotas de autenticação
 app.use('/auth', authRouter);
-//Rota para buscar agendamentos
+//Rota para buscar e editar agendamentos
 app.use("/agendamentos",agendamentosRouter)
 //Rota para buscar horarios fixos
 app.use("/horarios-fixos",horariosFixosRouter)
-//Rota para cadastrar agendamento
-app.use("/cadastrar-agendamento", cadastrarAgendamentoRouter)
 
 const server = app.listen(port, () => {
   console.log(`O servidor tá rodando em http://localhost:${port}`);
