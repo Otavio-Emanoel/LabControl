@@ -16,7 +16,7 @@ export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <View className="flex-1 bg-black">
+    <ScrollView className="flex-1 bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -106,7 +106,7 @@ export default function Index() {
       </View>
 
       {/* Card de aula com arredondamento correto */}
-      <View className="w-[90%] h-36 mx-auto mt-5 rounded-2xl overflow-hidden">
+      <View className="w-[90%] h-36 mx-auto mt-5 rounded-2xl overflow-hidden mb-32">
         <LinearGradient
           colors={["#3B96E2", "#010410"]}
           start={{ x: 0, y: 0 }}
@@ -125,6 +125,6 @@ export default function Index() {
 
       {/* Navbar inferior */}
       <Nav active="home"/>
-    </View>
+    </ScrollView>
   );
 }

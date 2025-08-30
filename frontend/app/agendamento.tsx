@@ -1,19 +1,59 @@
-import { View, ScrollView, Image, Text, TouchableOpacity } from 'react-native'
+import { View, ScrollView } from 'react-native';
+import axios from 'axios';
+import { Image, Text, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import LabCard from '@/components/labCard';
+
+interface Lab {
+  numero: string;
+}
 
 export default function AgendamentoPage() {
-    return (
-        <ScrollView className='flex-1 bg-black w-full h-full'>
-            <View className='w-full h-1/3 absolute'>
-        <Image source={require("../assets/images/bg2.jpg")} className="w-full absolute "/></View>
+  const [selected, setSelected] = useState<'professores' | 'organizacao'>('professores');
+  const [labs, setLabs] = useState<Lab[]>([]);
+
+  useEffect(() => {
+    const fetchLabs = async () => {
+      try {
+        const res = await axios.get("http://localhost:3000/labs/all"); 
+        setLabs(res.data);
+      } catch (error) {
+        console.error("Error fetching labs:", error);
+      }
+    };
+    fetchLabs();
+  }, []);
+
+  return (
+    <ScrollView className='flex-1 bg-black'>
+      {/* background image */}
+      <View style={{ width: '100%', height: '33%', position: 'absolute', top: 0, left: 0 }}>
+        <Image source={require("../assets/images/bg2.jpg")} style={{ width: '100%', height: '100%' }} />
+      </View>
         <View className='flex-1 flex-row items-center h-full p-16 z-10 font-poppins'>
             <Ionicons name="arrow-back" size={16} color="white" className="mr-4" />
             <Text className='color-white text-xl'>Voltar</Text>
         </View>
-        <View className='flex-1 flex-row items-center h-full p-16 z-10 font-poppins flex-1 items-center justify-center'>
-            <TouchableOpacity className='bg-[#3B96E2] py-2 px-8 rounded-full'><Text>Professores</Text></TouchableOpacity>
-            <TouchableOpacity className='bg-white py-2 px-8 rounded-full'><Text>Organização</Text></TouchableOpacity>
+        <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
+            <TouchableOpacity 
+              className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selected === 'professores' ? 'bg-[#3B96E2]' : ''}`} 
+              onPress={() => setSelected('professores')}
+            >
+              <Text className={`font-poppins ${selected === 'professores' ? 'color-white' : ''}`}>Professores</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selected === 'organizacao' ? 'bg-[#3B96E2]' : ''}`} 
+              onPress={() => setSelected('organizacao')}
+            >
+              <Text className={`font-poppins ${selected === 'organizacao' ? 'color-white' : ''}`}>Organização</Text>
+            </TouchableOpacity>
         </View>
-        </ScrollView>
-    )
+      <View>
+        {labs.map((lab, index) => (
+          <LabCard labName={lab.numero} key={index} />
+        ))}
+      </View>
+    </ScrollView>
+  );
 }
