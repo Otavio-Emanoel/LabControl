@@ -4,6 +4,7 @@ import testRouter from './test/test.router';
 import authRouter from './routes/auth.routes';
 import agendamentosRouter from './routes/agendamento.routes';
 import horariosFixosRouter from './routes/horariosfixos.routes'
+import labsRouter from './routes/labs.routes';
 import { pool } from './database/connection';
 
 const app = express();
@@ -24,6 +25,8 @@ app.use('/auth', authRouter);
 app.use("/agendamentos",agendamentosRouter)
 //Rota para buscar horarios fixos
 app.use("/horarios-fixos",horariosFixosRouter)
+//Rota para buscar laboratórios
+app.use("/labs",labsRouter)
 
 const server = app.listen(port, () => {
   console.log(`O servidor tá rodando em http://localhost:${port}`);
