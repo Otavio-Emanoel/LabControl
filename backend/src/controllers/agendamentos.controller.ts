@@ -11,7 +11,7 @@ export async function cadastrarAgendamento(
         fk_usuario
     }: DbAgendamento) {
     const sql = `
-        INSERT INTO agendamentos (
+        INSERT INTO reserva (
             horario,
             dia,
             fk_aulas,
