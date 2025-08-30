@@ -96,7 +96,7 @@ CREATE TABLE `reserva` (
 CREATE TABLE `usuarios` (
   `id_usuario` int(11) NOT NULL,
   `nome` varchar(45) NOT NULL,
-  `cargos` varchar(45) DEFAULT NULL,
+  `cargo` varchar(45) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `senha` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -200,3 +200,29 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- Tabela de Curso
+CREATE TABLE curso (
+  id_curso INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL
+);
+
+-- Tabela de Disciplina
+CREATE TABLE disciplina (
+  id_disciplina INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(100) NOT NULL,
+  id_curso INT NOT NULL,
+  FOREIGN KEY (id_curso) REFERENCES curso(id_curso)
+);
+
+-- Vínculo Professor-Disciplina
+CREATE TABLE professor_disciplina (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  id_usuario INT NOT NULL,
+  id_disciplina INT NOT NULL,
+  FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario),
+  FOREIGN KEY (id_disciplina) REFERENCES disciplina(id_disciplina)
+);
+
+-- Relaciona reserva ao id_disciplina via fk_aulas
+ALTER TABLE reserva ADD CONSTRAINT reserva_ibfk_3 FOREIGN KEY (fk_aulas) REFERENCES disciplina(id_disciplina);

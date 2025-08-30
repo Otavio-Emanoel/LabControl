@@ -10,6 +10,16 @@ export async function register(req: Request, res: Response) {
         if (!nome || !email || !senha || !cargo) {
             return res.status(400).json({ error: 'Informe nome, email, senha e cargo.' });
         }
+
+        // Verifica se o e-mail já está cadastrado
+        const [rows] = await pool.query(
+            'SELECT id_usuario FROM usuarios WHERE email = ? LIMIT 1',
+            [email]
+        );
+        if (Array.isArray(rows) && rows.length > 0) {
+            return res.status(409).json({ error: 'E-mail já cadastrado.' });
+        }
+
         const hashedPassword = await bcrypt.hash(senha, 10);
         await pool.query(
             'INSERT INTO usuarios (id_usuario, email, nome, senha, cargo) VALUES (?, ?, ?, ?, ?)',
@@ -62,3 +72,94 @@ export async function login(req: Request, res: Response) {
     }
 }
 
+export async function adicionarCurso(req: Request, res: Response) {
+    try {
+        // Verifica se o usuário é Auxiliar_Docente
+        const usuario = (req as any).user;
+        if (!usuario || usuario.cargo !== 'Auxiliar_Docente') {
+            return res.status(403).json({ error: 'Apenas Auxiliar Docente pode adicionar curso.' });
+        }
+
+        const { nome } = req.body;
+        if (!nome) {
+            return res.status(400).json({ error: 'Informe o nome do curso.' });
+        }
+
+        await pool.query('INSERT INTO curso (nome) VALUES (?)', [nome]);
+        return res.status(201).json({ message: 'Curso adicionado com sucesso!' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
+export async function adicionarDisciplina(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || (usuario.cargo !== 'Coordenador' && usuario.cargo !== 'Auxiliar_Docente')) {
+            return res.status(403).json({ error: 'Apenas Coordenador ou Auxiliar Docente pode adicionar disciplina.' });
+        }
+
+        const { nome, id_curso } = req.body;
+        if (!nome || !id_curso) {
+            return res.status(400).json({ error: 'Informe o nome da disciplina e o id do curso.' });
+        }
+
+        // Verifica se o curso existe
+        const [cursoRows] = await pool.query('SELECT id_curso FROM curso WHERE id_curso = ?', [id_curso]);
+        if (!Array.isArray(cursoRows) || cursoRows.length === 0) {
+            return res.status(404).json({ error: 'Curso não encontrado.' });
+        }
+
+        await pool.query('INSERT INTO disciplina (nome, id_curso) VALUES (?, ?)', [nome, id_curso]);
+        return res.status(201).json({ message: 'Disciplina adicionada com sucesso!' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
+export async function vincularProfessorDisciplina(req: Request, res: Response) {
+    try {
+        // Apenas Coordenador ou Auxiliar Docente podem vincular
+        const usuario = (req as any).user;
+        if (!usuario || (usuario.cargo !== 'Coordenador' && usuario.cargo !== 'Auxiliar_Docente')) {
+            return res.status(403).json({ error: 'Apenas Coordenador ou Auxiliar Docente pode vincular professor à disciplina.' });
+        }
+
+        const { id_usuario, id_disciplina } = req.body;
+        if (!id_usuario || !id_disciplina) {
+            return res.status(400).json({ error: 'Informe o id do professor e o id da disciplina.' });
+        }
+
+        // Verifica se o professor existe
+        const [profRows] = await pool.query('SELECT id_usuario FROM usuarios WHERE id_usuario = ?', [id_usuario]);
+        if (!Array.isArray(profRows) || profRows.length === 0) {
+            return res.status(404).json({ error: 'Professor não encontrado.' });
+        }
+
+        // Verifica se a disciplina existe
+        const [discRows] = await pool.query('SELECT id_disciplina FROM disciplina WHERE id_disciplina = ?', [id_disciplina]);
+        if (!Array.isArray(discRows) || discRows.length === 0) {
+            return res.status(404).json({ error: 'Disciplina não encontrada.' });
+        }
+
+        // Verifica se já está vinculado
+        const [vincRows] = await pool.query(
+            'SELECT id FROM professor_disciplina WHERE id_usuario = ? AND id_disciplina = ?',
+            [id_usuario, id_disciplina]
+        );
+        if (Array.isArray(vincRows) && vincRows.length > 0) {
+            return res.status(409).json({ error: 'Professor já vinculado à disciplina.' });
+        }
+
+        await pool.query(
+            'INSERT INTO professor_disciplina (id_usuario, id_disciplina) VALUES (?, ?)',
+            [id_usuario, id_disciplina]
+        );
+        return res.status(201).json({ message: 'Professor vinculado à disciplina com sucesso!' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}

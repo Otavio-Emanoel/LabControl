@@ -36,11 +36,13 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
 	}
 }
 
-export function requireRole(...roles: string[]) {
-	return (req: Request, res: Response, next: NextFunction) => {
-		const user = (req as any).user as AuthPayload | undefined;
-		if (!user) return res.status(401).json({ error: 'Não autenticado' });
-		if (!roles.includes(user.cargo)) return res.status(403).json({ error: 'Acesso negado' });
-		next();
-	};
+export function requireRole(roles: string[] | string, ...rest: string[]) {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const user = (req as any).user as AuthPayload | undefined;
+        // Junta todos os cargos em um array, seja vindo como array ou argumentos separados
+        const allowedRoles = Array.isArray(roles) ? roles : [roles, ...rest];
+        if (!user) return res.status(401).json({ error: 'Não autenticado' });
+        if (!allowedRoles.includes(user.cargo)) return res.status(403).json({ error: 'Acesso negado' });
+        next();
+    };
 }
