@@ -9,7 +9,6 @@ import { pool } from './database/connection';
 
 const app = express();
 
-app.use(cors()); 
 app.use(express.json());
 
 const port = Number(process.env.PORT) || 3000;
