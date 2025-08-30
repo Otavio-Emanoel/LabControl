@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import 'dotenv/config';
 import testRouter from './test/test.router';
 import authRouter from './routes/auth.routes';
@@ -8,6 +9,7 @@ import { pool } from './database/connection';
 
 const app = express();
 
+app.use(cors()); 
 app.use(express.json());
 
 const port = Number(process.env.PORT) || 3000;
