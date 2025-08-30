@@ -44,29 +44,24 @@
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token do usuário
 
-Precisa revisar e adicionar a rota
 **GET /agendamentos**
 - Lista todos os agendamentos
 - Necessário token
 
-Precisa revisar e adicionar a rota
 **GET /agendamentos/:id**
 - Busca agendamento por ID
 - Necessário token
 
-Precisa revisar e adicionar a rota
 **GET /agendamentos/usuario/:id_usuario**
 - Lista agendamentos de um usuário
 - Necessário token
 
-Precisa revisar e adicionar a rota
-**PUT /agendamentos/:id**
+**POST /agendamentos/update/:id**
 - Atualiza agendamento
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token
 
-Precisa revisar e adicionar a rota
-**DELETE /agendamentos/:id**
+**DELETE /agendamentos/update/:id**
 - Remove agendamento
 - Necessário token
 
