@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import 'dotenv/config';
 import testRouter from './test/test.router';
 import authRouter from './routes/auth.routes';
@@ -6,7 +7,11 @@ import agendamentosRouter from './routes/agendamento.routes';
 import horariosFixosRouter from './routes/horariosfixos.routes'
 import { pool } from './database/connection';
 
+
 const app = express();
+
+// habilita o cors (config simples: permite tudo)
+app.use(cors());
 
 app.use(express.json());
 
