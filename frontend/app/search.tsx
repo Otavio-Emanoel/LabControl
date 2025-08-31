@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Text, TextInput, ScrollView } from "react-native";
+import { View, TouchableOpacity, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
@@ -9,7 +9,7 @@ export default function Search() {
   const handleClear = () => setSearchText("");
 
   return (
-    <ScrollView className="flex-1 bg-black justify-start">
+    <View className="flex-1 bg-black justify-start">
       {/* Barra de pesquisa */}
       <View className="p-4 flex-row items-center w-[100%] mt-32 px-16 rounded-full">
         <TouchableOpacity className="absolute left-4">
@@ -55,6 +55,6 @@ export default function Search() {
 
 
 
-    </ScrollView>
+    </View>
   );
 }
