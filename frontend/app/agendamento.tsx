@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LabCard from '@/components/labCard';
+import Constants from "expo-constants";
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import Nav from '@/components/nav';
@@ -16,13 +17,14 @@ interface Lab {
 export default function AgendamentoPage() {
   const [selected, setSelected] = useState<'professores' | 'organizacao'>('professores');
   const [labs, setLabs] = useState<Lab[]>([]);
-
+  
   useAuthGuard();
-
+  
   useEffect(() => {
     const fetchLabs = async () => {
+      const API_URL = (Constants.expoConfig?.extra as any)?.API_URL as string | undefined;
       try {
-        const res = await axios.get("http://localhost:3000/labs/all"); 
+        const res = await axios.get(`${API_URL}/labs/all`); 
         setLabs(res.data);
       } catch (error) {
         console.error("Error fetching labs:", error);

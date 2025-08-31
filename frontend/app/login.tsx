@@ -2,12 +2,26 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import axios from "axios";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [hidePassword, setHidePassword] = useState(true);
+
+  const logar = () => {
+    axios.post("http://localhost:3000/auth/login", {
+      email,
+      password,
+    })
+      .then((response: { data: any }) => {
+        console.log("Login successful:", response.data);
+      })
+      .catch((error: any) => {
+        console.error("Login error:", error);
+      });
+  }
 
   return (
     <View className="flex-1 bg-[#0B0B0F]">
@@ -105,6 +119,7 @@ function LoginPage() {
             shadowOffset: { width: 0, height: 8 },
             elevation: 8,
           }}
+          onPress={logar}
         >
           <Text className="text-white font-semibold">Continue</Text>
         </TouchableOpacity>
