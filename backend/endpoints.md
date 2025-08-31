@@ -20,6 +20,18 @@
 
 ### Cursos e Disciplinas
 
+**GET /auth/cursos**
+- Lista todos os cursos
+- Não requer autenticação
+
+**GET /auth/disciplinas**
+- Lista todas as disciplinas
+- Não requer autenticação
+
+**GET /auth/professores-disciplinas**
+- Lista todos os vínculos de professor com disciplina
+- Não requer autenticação
+
 **POST /auth/curso**
 - Adiciona novo curso (apenas Auxiliar_Docente)
 - Body: `{ nome }`
@@ -44,7 +56,7 @@
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token do usuário
 
-**GET /agendamentos**
+**GET /agendamentos/all**
 - Lista todos os agendamentos
 - Necessário token
 
@@ -61,7 +73,7 @@
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token
 
-**DELETE /agendamentos/update/:id**
+**POST /agendamentos/update/:id**
 - Remove agendamento
 - Necessário token
 
