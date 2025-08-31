@@ -1,9 +1,10 @@
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, ScrollView, Image, Text, TouchableOpacity } from 'react-native';
-import { useState, useEffect, useMemo } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getApiBaseUrl } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import Nav from '@/components/nav';
@@ -29,6 +30,17 @@ function formatYMD(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+// Converte valor de dia (Date ou string) para 'YYYY-MM-DD'
+function toYMD(dia: unknown): string {
+  if (typeof dia === 'string') return dia.slice(0, 10);
+  if (dia && typeof dia === 'object' && typeof (dia as any).getFullYear === 'function') {
+    const dt = dia as Date;
+    return formatYMD(dt);
+  }
+  const dt = new Date(dia as any);
+  return isNaN(dt.getTime()) ? '' : formatYMD(dt);
 }
 
 const WEEK_LABELS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
@@ -84,6 +96,21 @@ export default function AgendamentoPage() {
     load();
   }, []);
 
+  // Recarrega reservas ao voltar para a tela
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const reload = async () => {
+        try {
+          const reservasRes = await api.get<Reserva[]>(`/agendamentos/all`);
+          if (active) setReservas(reservasRes.data as any);
+        } catch {}
+      };
+      reload();
+      return () => { active = false; };
+    }, [])
+  );
+
   // Gera calendário do mês
   const monthGrid = useMemo(() => {
     const year = current.getFullYear();
@@ -109,7 +136,7 @@ export default function AgendamentoPage() {
   // Reservas do dia selecionado
   const selectedYMD = useMemo(() => formatYMD(selectedDate), [selectedDate]);
   const reservasDoDia = useMemo(
-    () => reservas.filter((r) => r.dia?.slice(0, 10) === selectedYMD),
+    () => reservas.filter((r) => toYMD((r as any).dia) === selectedYMD),
     [reservas, selectedYMD]
   );
 
@@ -165,7 +192,7 @@ export default function AgendamentoPage() {
   };
 
   const onAgendar = (lab: Lab) => {
-    router.push({ pathname: '/agendamento', params: { labId: String(lab.id_Laboratorio), date: selectedYMD } });
+    router.push({ pathname: '/agendar', params: { labId: String(lab.id_Laboratorio), date: selectedYMD } });
   };
 
   return (
@@ -222,7 +249,7 @@ export default function AgendamentoPage() {
             const isSelected = sameYMD(date, selectedDate);
             const isToday = sameYMD(date, new Date());
             const ymd = formatYMD(date);
-            const hasReserva = reservas.some((r) => r.dia?.slice(0, 10) === ymd);
+            const hasReserva = reservas.some((r) => toYMD((r as any).dia) === ymd);
             return (
               <TouchableOpacity
                 key={key}
@@ -255,7 +282,7 @@ export default function AgendamentoPage() {
           <Text className='text-red-400 text-center mt-4'>{errorMsg}</Text>
         ) : null}
         {labs.map((lab) => {
-          const count = ocupacaoPorLab.get(lab.id_Laboratorio) || 0;
+          const count = reservasDoDia.filter((r) => r.id_Laboratorio === lab.id_Laboratorio).length;
           const percent = Math.round((count / maxOcupacao) * 100);
           return (
             <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12 }}>

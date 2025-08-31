@@ -2,6 +2,18 @@ import { pool } from "../database/connection";
 import { DbAgendamento } from "../models/agendamentos.model";
 import { Request, Response } from "express";
 
+const ALLOWED_TIMES = [
+  '08:00:00',
+  '08:50:00',
+  '10:00:00',
+  '10:50:00',
+  '11:40:00',
+  '12:30:00',
+  '13:30:00',
+  '14:20:00',
+  '15:10:00',
+];
+
 // cadastrar novo agendamento (função interna)
 async function cadastrarAgendamento(
   { horario,
@@ -176,12 +188,58 @@ export const listarAgendamentosPorUsuario = async (req: Request, res: Response) 
 };
 
 export const criarAgendamento = async (req: Request, res: Response) => {
-  const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario } = req.body as DbAgendamento;
+  const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario: bodyFkUsuario } = req.body as any as DbAgendamento & { fk_usuario?: number };
   try {
-    const result = await cadastrarAgendamento({ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario });
+    // valida horario permitido
+    if (!ALLOWED_TIMES.includes(horario)) {
+      return res.status(400).json({ error: 'Horário inválido. Use um dos horários permitidos.' });
+    }
+
+    // bloqueia datas passadas
+    const todayYMD = new Date();
+    const y = todayYMD.getFullYear();
+    const m = String(todayYMD.getMonth() + 1).padStart(2, '0');
+    const d = String(todayYMD.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+    if (dia < todayStr) {
+      return res.status(400).json({ error: 'Não é permitido agendar para datas passadas.' });
+    }
+
+    const user = (req as any).user as { id_usuario: number; cargo: string } | undefined;
+    if (!user) return res.status(401).json({ error: 'Não autenticado' });
+
+    // Determina o usuário responsável conforme cargo
+    let fk_usuario = bodyFkUsuario as unknown as number | null;
+    if (user.cargo === 'Professor') {
+      fk_usuario = user.id_usuario; // professor só pode agendar para si
+    } else {
+      // Coordenador/Auxiliar devem informar um professor
+      if (!fk_usuario) return res.status(400).json({ error: 'Informe o professor responsável (fk_usuario).' });
+      // Confere se o usuário existe e é Professor
+      const [uRows]: any = await pool.query('SELECT cargo FROM usuarios WHERE id_usuario = ? LIMIT 1', [fk_usuario]);
+      if (!Array.isArray(uRows) || uRows.length === 0) return res.status(404).json({ error: 'Professor não encontrado.' });
+      if (uRows[0].cargo !== 'Professor') return res.status(400).json({ error: 'fk_usuario deve ser um Professor.' });
+    }
+
+    // fk_aulas opcional: se enviado, valida existência
+    if (fk_aulas != null) {
+      const [aRows]: any = await pool.query('SELECT id_disciplina FROM disciplina WHERE id_disciplina = ? LIMIT 1', [fk_aulas]);
+      if (!Array.isArray(aRows) || aRows.length === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+    }
+
+    // bloqueia duplicidade: mesmo lab, dia e horário
+    const [dup]: any = await pool.query(
+      'SELECT id_Reserva FROM reserva WHERE fk_laboratorio = ? AND dia = ? AND horario = ? LIMIT 1',
+      [fk_laboratorio, dia, horario]
+    );
+    if (Array.isArray(dup) && dup.length > 0) {
+      return res.status(409).json({ error: 'Laboratório já reservado neste horário.' });
+    }
+
+    const result = await cadastrarAgendamento({ horario, dia, fk_aulas: fk_aulas as any, justificativa, fk_laboratorio, fk_usuario: fk_usuario as any });
     res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao cadastrar agendamento', details: msg(error) });
+    res.status(500).json({ error: 'Erro ao cadastrar agendamento', details: error instanceof Error ? error.message : String(error) });
   }
 };
 
