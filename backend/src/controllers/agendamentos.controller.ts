@@ -34,6 +34,7 @@ async function todosAgendamentos() {
     SELECT 
       r.id_Reserva,
       r.horario,
+      r.dia,
       r.justificativa,
       u.id_usuario,
       u.nome AS nome_usuario,
@@ -57,6 +58,7 @@ async function agendamentoPorId(id: number) {
     SELECT 
       r.id_Reserva,
       r.horario,
+      r.dia,
       r.justificativa,
       u.id_usuario,
       u.nome AS nome_usuario,
@@ -86,6 +88,7 @@ async function agendamentosPorUsuario(id_usuario: number): Promise<any[]> {
     SELECT 
       r.id_Reserva,
       r.horario,
+      r.dia,
       r.justificativa,
       u.id_usuario,
       u.nome AS nome_usuario,
