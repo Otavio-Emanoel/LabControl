@@ -8,30 +8,53 @@ import {
 } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { LinearGradient } from "expo-linear-gradient";
+import { useState, useEffect } from "react";
 import Nav from "@/components/nav";
-import { useAuthGuard } from "../hooks/useAuthGuard";
+import MeusAgendamentosCard from "@/components/meusAgendamentosCard";
 
 export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  useAuthGuard();
+  const [semana, setSemana] = useState<{ dia: string; abrev: string }[]>([]);
+  const [diaSelecionado, setDiaSelecionado] = useState<string>("");
+
+  // Gera os próximos 7 dias
+  const gerarSemanaAtual = () => {
+    const diasSemana = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+    const hoje = new Date();
+    const novaSemana = [];
+
+    for (let i = 0; i < 7; i++) {
+      const data = new Date();
+      data.setDate(hoje.getDate() + i);
+      novaSemana.push({
+        dia: data.getDate().toString(),
+        abrev: diasSemana[data.getDay()],
+      });
+    }
+    return novaSemana;
+  };
+
+  useEffect(() => {
+    const semanaAtual = gerarSemanaAtual();
+    setSemana(semanaAtual);
+    setDiaSelecionado(semanaAtual[0].dia); // seleciona hoje por padrão
+  }, []);
 
   return (
-    <ScrollView className="flex-1 bg-black">
+    <View className="flex-1 bg-black">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Background Image */}
       <Image
         source={require("../assets/images/home-background.jpg")}
-        className="w-[100%] h-[50%] absolute top-[5%]"
+        className="w-full h-[50%] absolute top-[5%]"
       />
 
-      {/* Header */}
-      <View className="px-6 pt-12 mt-5">
+      {/* Conteúdo com Scroll */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 200 }} className="px-6 pt-12 mt-5"> {/*Quando arrumar a navbar coloca 100 no paddingBottom */}
+        {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
-          {/* Sidebar icon */}
           <TouchableOpacity onPress={() => setSidebarOpen(true)}>
             <Ionicons name="menu" size={28} color="white" />
           </TouchableOpacity>
@@ -47,10 +70,8 @@ export default function Index() {
           </View>
         </View>
 
-        <Text className="text-xs text-white/80 font-madimi">Olá User</Text>
-        <Text className="text-3xl text-white font-madimi">
-          Bem vindo!
-        </Text>
+        <Text className="text-xs text-white/80 font-madimi mt-12">Olá User</Text>
+        <Text className="text-3xl text-white font-madimi">Bem vindo!</Text>
 
         {/* Barra de pesquisa */}
         <View className="relative mt-4">
@@ -61,37 +82,30 @@ export default function Index() {
           <TextInput
             placeholder="Pesquise aqui"
             placeholderTextColor="#828282"
-            className="bg-[#2A2A2A] rounded-full pl-12 pr-4 py-3 text-white font-semibold"
+            className="bg-[#2A2A2A]/70 rounded-full pl-12 pr-4 py-3 text-white font-madimi"
           />
         </View>
 
-        {/* Seletor de datas */}
+        {/* Seletor de datas dinâmico */}
         <View className="bg-[#000000] rounded-2xl flex-row justify-between px-3 py-3 mt-4">
-          {[
-            { dia: "12", abrev: "ter" },
-            { dia: "13", abrev: "qua" },
-            { dia: "14", abrev: "qui" },
-            { dia: "15", abrev: "sex" },
-            { dia: "16", abrev: "sáb" },
-            { dia: "17", abrev: "dom" },
-            { dia: "18", abrev: "seg" },
-          ].map((item, i) => (
+          {semana.map((item, i) => (
             <TouchableOpacity
               key={i}
+              onPress={() => setDiaSelecionado(item.dia)}
               className={`flex-1 mx-1 py-2 rounded-xl ${
-                item.dia === "15" ? "bg-[#1C4AED]" : ""
+                item.dia === diaSelecionado ? "bg-[#1C4AED]" : ""
               }`}
             >
               <Text
                 className={`text-center text-xs ${
-                  item.dia === "15" ? "text-white" : "text-white/70"
+                  item.dia === diaSelecionado ? "text-white" : "text-white/70"
                 } font-semibold`}
               >
                 {item.abrev}
               </Text>
               <Text
                 className={`text-center mt-1 ${
-                  item.dia === "15" ? "text-white" : "text-white/70"
+                  item.dia === diaSelecionado ? "text-white" : "text-white/70"
                 } font-semibold`}
               >
                 {item.dia}
@@ -105,28 +119,17 @@ export default function Index() {
           <Text className="text-lg font-semibold text-white">Agendamentos</Text>
           <Text className="text-[#71B9F4] font-semibold">Ver todos</Text>
         </View>
-      </View>
 
-      {/* Card de aula com arredondamento correto */}
-      <View className="w-[90%] h-36 mx-auto mt-5 rounded-2xl overflow-hidden mb-32">
-        <LinearGradient
-          colors={["#3B96E2", "#010410"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          className="flex-1 p-4"
-        >
-          <Text className="text-white font-bold text-2xl">Laboratório</Text>
-          <Text className="text-white font-semibold text-sm mt-1">Aula</Text>
-          <View className="flex-1 justify-end items-end">
-            <Text className="text-[#828282] font-semibold text-base">
-              08:00 - 08:50
-            </Text>
-          </View>
-        </LinearGradient>
-      </View>
+        {/* Cards de Aulas */}
+        <View className="mt-4">
+          <MeusAgendamentosCard titulo="Laboratório" tipo="Aula" horario="08:00 - 08:50" />
+          <MeusAgendamentosCard titulo="Matemática" tipo="Aula" horario="09:00 - 09:50" />
+          <MeusAgendamentosCard titulo="Física" tipo="Aula" horario="10:00 - 10:50" />
+        </View>
+      </ScrollView>
 
-      {/* Navbar inferior */}
-      <Nav active="home"/>
-    </ScrollView>
+      {/* Navbar inferior fixa */}
+      <Nav active="home" />
+    </View>
   );
 }
