@@ -1,6 +1,8 @@
 import { View, TouchableOpacity, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
+import { Link } from "expo-router";
+import Nav from "@/components/nav";
 
 export default function Search() {
   const [searchText, setSearchText] = useState("");
@@ -11,9 +13,9 @@ export default function Search() {
     <View className="flex-1 bg-black justify-start">
       {/* Barra de pesquisa */}
       <View className="p-4 flex-row items-center w-[100%] mt-32 px-16 rounded-full">
-        <TouchableOpacity className="absolute left-4">
+        <Link href="/" className="absolute left-4">
           <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
+        </Link>
         <TextInput
           className="border-solid border-[#999] rounded-full py-2 px-6 border-[1px] flex-1 color-white text-bold text-16"
           placeholder="Pesquisar..."
@@ -53,7 +55,7 @@ export default function Search() {
       </View>
 
 
-
+        <Nav active="search"/>
     </View>
   );
 }
