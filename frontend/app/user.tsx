@@ -2,8 +2,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/nav';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 export default function ProfileScreen() {
+
+    useAuthGuard();
     return (
         <View style={{ flex: 1, backgroundColor: 'black', padding: 16 }}>
             {/* Bloco cinza contendo perfil e menu */}

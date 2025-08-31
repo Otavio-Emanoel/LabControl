@@ -29,6 +29,7 @@ export default function RootLayout() {
             iconName = focused ? 'person' : 'person-outline';
           }
 
+          // @ts-ignore
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
