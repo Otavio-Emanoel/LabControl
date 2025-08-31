@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
+import Nav from "../components/nav";
 
 export default function Search() {
   const [searchText, setSearchText] = useState("");
@@ -111,6 +112,7 @@ export default function Search() {
           </TouchableOpacity>
         ))}
       </View>
+      <Nav active="search" />
     </View>
   );
 }

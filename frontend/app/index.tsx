@@ -52,7 +52,7 @@ export default function Index() {
       />
 
       {/* Conteúdo com Scroll */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 200 }} className="px-6 pt-12 mt-5"> {/*Quando arrumar a navbar coloca 100 no paddingBottom */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 200 }} className="px-6 pt-12 mt-5">
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           <TouchableOpacity onPress={() => setSidebarOpen(true)}>
