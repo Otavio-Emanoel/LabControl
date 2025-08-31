@@ -3,8 +3,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Navbar from '../components/nav';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 
 export default function Settings() {
+    useAuthGuard();
+  
   return (
     <View className="flex-1 bg-black">
       {/* Topo */}

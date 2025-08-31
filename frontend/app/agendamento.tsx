@@ -1,11 +1,13 @@
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Image, Text, TouchableOpacity } from 'react-native';
 import axios from 'axios';
-import { Image, Text, TouchableOpacity } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LabCard from '@/components/labCard';
-import Nav from "@/components/nav";
+
+import { useAuthGuard } from '@/hooks/useAuthGuard';
+import Nav from '@/components/nav';
+
 
 interface Lab {
   numero: string;
@@ -14,6 +16,8 @@ interface Lab {
 export default function AgendamentoPage() {
   const [selected, setSelected] = useState<'professores' | 'organizacao'>('professores');
   const [labs, setLabs] = useState<Lab[]>([]);
+
+  useAuthGuard();
 
   useEffect(() => {
     const fetchLabs = async () => {

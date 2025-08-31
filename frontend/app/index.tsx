@@ -11,9 +11,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Nav from "@/components/nav";
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useAuthGuard();
 
   return (
     <ScrollView className="flex-1 bg-black">
