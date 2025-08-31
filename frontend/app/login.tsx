@@ -30,12 +30,15 @@ function LoginPage() {
         senha: password,
       });
 
-      const { token } = response.data || {};
+      const { token, user } = response.data || {};
       if (!token) {
         throw new Error("Token não recebido do servidor.");
       }
 
       await AsyncStorage.setItem("auth_token", token);
+      if (user) {
+        await AsyncStorage.setItem("auth_user", JSON.stringify(user));
+      }
       router.replace("/");
     } catch (error: any) {
       console.error("Login error:", error);
