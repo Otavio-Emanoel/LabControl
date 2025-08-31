@@ -1,16 +1,17 @@
 import { pool } from "../database/connection";
 import { DbAgendamento } from "../models/agendamentos.model";
+import { Request, Response } from "express";
 
-// cadastrar novo agendamento
-export async function cadastrarAgendamento(
-    {horario,
-        dia,
-        fk_aulas,
-        justificativa,
-        fk_laboratorio,
-        fk_usuario
-    }: DbAgendamento) {
-    const sql = `
+// cadastrar novo agendamento (função interna)
+async function cadastrarAgendamento(
+  { horario,
+    dia,
+    fk_aulas,
+    justificativa,
+    fk_laboratorio,
+    fk_usuario
+  }: DbAgendamento) {
+  const sql = `
         INSERT INTO reserva (
             horario,
             dia,
@@ -21,20 +22,14 @@ export async function cadastrarAgendamento(
         ) VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    const values = [horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario];
+  const values = [horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario];
 
-    try {
-        const [result] = await pool.query(sql, values);
-        console.log("Agendamento cadastrado com sucesso:", result);
-        return result;
-    } catch (error) {
-        console.error("Erro ao cadastrar agendamento:", error);
-        throw error;
-    }
+  const [result] = await pool.query(sql, values);
+  return result;
 }
 
-// listar todos os agendamentos
-export async function todosAgendamentos() {
+// listar todos os agendamentos (função interna)
+async function todosAgendamentos() {
   const query = `
     SELECT 
       r.id_Reserva,
@@ -56,8 +51,8 @@ export async function todosAgendamentos() {
   return rows;
 }
 
-// Pegar agendamento específico
-export async function agendamentoPorId(id: number) {
+// Pegar agendamento específico (função interna)
+async function agendamentoPorId(id: number) {
   const query = `
     SELECT 
       r.id_Reserva,
@@ -85,8 +80,8 @@ export async function agendamentoPorId(id: number) {
   }
 }
 
-// pegar agendamentos do por usuário
-export async function agendamentosPorUsuario(id_usuario: number): Promise<any[]> {
+// pegar agendamentos do por usuário (função interna)
+async function agendamentosPorUsuario(id_usuario: number): Promise<any[]> {
   const query = `
     SELECT 
       r.id_Reserva,
@@ -113,78 +108,19 @@ export async function agendamentosPorUsuario(id_usuario: number): Promise<any[]>
   return rows as any[];
 }
 
-// deletar agendamento
-export async function deletarAgendamento(id: number, user: any) {
-  // Adicionar verificação se usuário e coordenador/auxiliar docente ou dono do agendamento
-  if (!user) {
-   return Promise.reject(new Error('Usuário não autenticado'));
-  }
-  const sel_query = `
-    SELECT 
-      reserva.id_Reserva,
-      reserva.id_usuario,
-    FROM 
-      reserva
-    WHERE 
-      reserva.id_Reserva = ?
-  `;
-
-  const [rows] = await pool.query(sel_query, [id]);
-  if (Array.isArray(rows) && rows.length > 0) {
-    const owner_id = (rows[0] as any).id_usuario;
-    if (user.cargo !== 'coordenador' && user.cargo !== 'auxiliar_docente') {
-      if (user.sub !== owner_id) {
-        return Promise.reject(new Error('Permissão negada: você não pode deletar este agendamento'));
-      }
-    }
-  } else {
-    throw new Error('Agendamento não encontrado');
-  }
-
+// deletar agendamento (função interna)
+async function deletarAgendamento(id: number) {
   const query = 'DELETE FROM reserva WHERE id_Reserva = ?';
-  try {
-    const [result] = await pool.query(query, [id]);
-    console.log("Agendamento deletado com sucesso:", result);
-    return result;
-  } catch (error) {
-    console.error("Erro ao deletar agendamento:", error);
-    throw error;
-  }
+  const [result]: any = await pool.query(query, [id]);
+  if (result?.affectedRows === 0) throw new Error('Agendamento não encontrado');
+  return result;
 }
 
-// atualizar agendamento
-export async function atualizarAgendamento(
-  // Adicionar verificação se usuário e coordenador/auxiliar docente ou dono do agendamento
-
-  id: number, user: any,
+// atualizar agendamento (função interna)
+async function atualizarAgendamento(
+  id: number,
   { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }: DbAgendamento
 ) {
-
-  if (!user) {
-    return Promise.reject(new Error('Usuário não autenticado'));
-   }
-   const sel_query = `
-     SELECT 
-       reserva.id_Reserva,
-       reserva.id_usuario,
-     FROM 
-       reserva
-     WHERE 
-       reserva.id_Reserva = ?
-   `;
- 
-   const [rows] = await pool.query(sel_query, [id]);
-   if (Array.isArray(rows) && rows.length > 0) {
-     const owner_id = (rows[0] as any).id_usuario;
-     if (user.cargo !== 'coordenador' && user.cargo !== 'auxiliar_docente') {
-       if (user.sub !== owner_id) {
-         return Promise.reject(new Error('Permissão negada: você não pode deletar este agendamento'));
-       }
-     }
-   } else {
-     throw new Error('Agendamento não encontrado');
-   }
-
   const query = `
     UPDATE reserva
     SET horario = ?, dia = ?, fk_aulas = ?, justificativa = ?, fk_laboratorio = ?, fk_usuario = ?
@@ -192,12 +128,81 @@ export async function atualizarAgendamento(
   `;
   const values = [horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario, id];
 
-  try {
-    const [result] = await pool.query(query, values);
-    console.log("Agendamento atualizado com sucesso:", result);
-    return result;
-  } catch (error) {
-    console.error("Erro ao atualizar agendamento:", error);
-    throw error;
-  }
+  const [result]: any = await pool.query(query, values);
+  if (result?.affectedRows === 0) throw new Error('Agendamento não encontrado');
+  return result;
 }
+
+/* ===========================
+   Handlers HTTP (exportados)
+   =========================== */
+
+function msg(e: unknown) {
+  return e instanceof Error ? e.message : String(e);
+}
+
+export const listarAgendamentos = async (_req: Request, res: Response) => {
+  try {
+    const data = await todosAgendamentos();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar agendamentos', details: msg(error) });
+  }
+};
+
+export const buscarAgendamento = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  try {
+    const data = await agendamentoPorId(id);
+    res.json(data);
+  } catch (error) {
+    const m = msg(error);
+    if (m.includes('não encontrado')) return res.status(404).json({ error: m });
+    res.status(500).json({ error: 'Erro ao buscar agendamento', details: m });
+  }
+};
+
+export const listarAgendamentosPorUsuario = async (req: Request, res: Response) => {
+  const id_usuario = Number(req.params.id_usuario);
+  try {
+    const data = await agendamentosPorUsuario(id_usuario);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar agendamentos do usuário', details: msg(error) });
+  }
+};
+
+export const criarAgendamento = async (req: Request, res: Response) => {
+  const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario } = req.body as DbAgendamento;
+  try {
+    const result = await cadastrarAgendamento({ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario });
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao cadastrar agendamento', details: msg(error) });
+  }
+};
+
+export const removerAgendamento = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  try {
+    const result = await deletarAgendamento(id);
+    res.json(result);
+  } catch (error) {
+    const m = msg(error);
+    if (m.includes('não encontrado')) return res.status(404).json({ error: m });
+    res.status(500).json({ error: 'Erro ao deletar agendamento', details: m });
+  }
+};
+
+export const editarAgendamento = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario } = req.body as DbAgendamento;
+  try {
+    const result = await atualizarAgendamento(id, { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario });
+    res.json(result);
+  } catch (error) {
+    const m = msg(error);
+    if (m.includes('não encontrado')) return res.status(404).json({ error: m });
+    res.status(500).json({ error: 'Erro ao atualizar agendamento', details: m });
+  }
+};

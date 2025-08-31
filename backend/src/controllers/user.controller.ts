@@ -163,3 +163,35 @@ export async function vincularProfessorDisciplina(req: Request, res: Response) {
         return res.status(500).json({ error: message });
     }
 }
+
+export async function listarCursos(_req: Request, res: Response) {
+  try {
+    const [rows] = await pool.query('SELECT id_curso, nome FROM curso');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao listar cursos.' });
+  }
+}
+
+export async function listarDisciplinas(_req: Request, res: Response) {
+  try {
+    const [rows] = await pool.query('SELECT id_disciplina, nome, id_curso FROM disciplina');
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao listar disciplinas.' });
+  }
+}
+
+export async function listarProfessoresDisciplinas(_req: Request, res: Response) {
+  try {
+    const [rows] = await pool.query(`
+      SELECT pd.id_usuario, u.nome AS nome_professor, pd.id_disciplina, d.nome AS nome_disciplina
+      FROM professor_disciplina pd
+      INNER JOIN usuarios u ON pd.id_usuario = u.id_usuario
+      INNER JOIN disciplina d ON pd.id_disciplina = d.id_disciplina
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao listar vínculos de professor com disciplina.' });
+  }
+}
