@@ -2,26 +2,51 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { api, getApiBaseUrl } from "@/lib/api";
 
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [hidePassword, setHidePassword] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const logar = () => {
-    axios.post("http://localhost:3000/auth/login", {
-      email,
-      password,
-    })
-      .then((response: { data: any }) => {
-        console.log("Login successful:", response.data);
-      })
-      .catch((error: any) => {
-        console.error("Login error:", error);
+  const logar = async () => {
+    const base = getApiBaseUrl();
+    if (!base) {
+      setErrorMsg("API_URL não configurada. Defina em .env e reinicie o app.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      const response = await api.post(`/auth/login`, {
+        email,
+        senha: password,
       });
-  }
+
+      const { token } = response.data || {};
+      if (!token) {
+        throw new Error("Token não recebido do servidor.");
+      }
+
+      await AsyncStorage.setItem("auth_token", token);
+      router.replace("/");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      const msg = error?.response?.data?.error
+        || (error?.message === "Network Error" ? `Falha de rede. Verifique se o servidor (${base}) está acessível.` : error?.message)
+        || "Erro ao fazer login.";
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View className="flex-1 bg-[#0B0B0F]">
@@ -96,6 +121,11 @@ function LoginPage() {
           </TouchableOpacity>
         </View>
 
+        {/* Erro */}
+        {errorMsg ? (
+          <Text className="text-red-400 mt-3 ml-1">{errorMsg}</Text>
+        ) : null}
+
         {/* Lembre-se de mim */}
         <View className="flex-row items-center mt-3">
           <TouchableOpacity
@@ -118,10 +148,12 @@ function LoginPage() {
             shadowRadius: 14,
             shadowOffset: { width: 0, height: 8 },
             elevation: 8,
+            opacity: loading ? 0.7 : 1,
           }}
           onPress={logar}
+          disabled={loading}
         >
-          <Text className="text-white font-semibold">Continue</Text>
+          <Text className="text-white font-semibold">{loading ? "Entrando..." : "Continue"}</Text>
         </TouchableOpacity>
 
         {/* Esqueceu a senha */}

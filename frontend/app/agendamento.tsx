@@ -1,14 +1,12 @@
 import { View, ScrollView, Image, Text, TouchableOpacity } from 'react-native';
-import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LabCard from '@/components/labCard';
-import Constants from "expo-constants";
+import { api, getApiBaseUrl } from '@/lib/api';
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import Nav from '@/components/nav';
-
 
 interface Lab {
   numero: string;
@@ -17,17 +15,20 @@ interface Lab {
 export default function AgendamentoPage() {
   const [selected, setSelected] = useState<'professores' | 'organizacao'>('professores');
   const [labs, setLabs] = useState<Lab[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   useAuthGuard();
   
   useEffect(() => {
     const fetchLabs = async () => {
-      const API_URL = (Constants.expoConfig?.extra as any)?.API_URL as string | undefined;
       try {
-        const res = await axios.get(`${API_URL}/labs/all`); 
+        setErrorMsg(null);
+        const res = await api.get(`/labs/all`);
         setLabs(res.data);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching labs:", error);
+        const base = getApiBaseUrl();
+        setErrorMsg(error?.message === 'Network Error' ? `Falha de rede. Verifique se o servidor (${base}) está acessível.` : 'Erro ao buscar laboratórios.');
       }
     };
     fetchLabs();
@@ -58,6 +59,9 @@ export default function AgendamentoPage() {
             </TouchableOpacity>
         </View>
       <View>
+        {errorMsg ? (
+          <Text className='text-red-400 text-center mt-4'>{errorMsg}</Text>
+        ) : null}
         {labs.map((lab, index) => (
           <LabCard labName={lab.numero} key={index} />
         ))}
