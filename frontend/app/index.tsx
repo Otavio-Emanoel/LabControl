@@ -8,12 +8,40 @@ import {
 } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Nav from "@/components/nav";
+import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 
 export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      try {
+        const API_URL = (Constants.expoConfig?.extra as any)?.API_URL as string | undefined;
+        const token = await AsyncStorage.getItem("auth_token");
+        if (!API_URL || !token) {
+          router.replace("/login");
+          return;
+        }
+        const res = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          router.replace("/login");
+          return;
+        }
+      } catch (e) {
+        console.error(e);
+        router.replace("/login");
+      }
+    };
+    bootstrap();
+  }, [router]);
 
   return (
     <ScrollView className="flex-1 bg-black">
