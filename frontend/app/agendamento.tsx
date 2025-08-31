@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import LabCard from '@/components/labCard';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import Nav from '@/components/nav';
 
 interface Lab {
   numero: string;

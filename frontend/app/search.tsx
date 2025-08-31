@@ -2,6 +2,8 @@ import { View, TouchableOpacity, Text, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import Nav from "@/components/nav";
+import { Link } from "expo-router";
 
 export default function Search() {
   const [searchText, setSearchText] = useState("");
