@@ -4,9 +4,19 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Navbar from '../components/nav';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Settings() {
     useAuthGuard();
+    const router = useRouter();
+
+    const sair = async () => {
+      try {
+        await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+      } catch {}
+      router.replace('/login' as any);
+    };
   
   return (
     <View className="flex-1 bg-black">
@@ -18,7 +28,7 @@ export default function Settings() {
         </Text>
 
         {/* Botão voltar */}
-        <TouchableOpacity className="flex-row items-center mb-6">
+        <TouchableOpacity className="flex-row items-center mb-6" onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={32} color="#F5F5F5" />
           <Text className="text-white text-xl ml-3">Voltar</Text>
         </TouchableOpacity>
@@ -41,7 +51,7 @@ export default function Settings() {
           <Text className="text-white text-xl ml-5">Privacidade</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity className="flex-row items-center py-5">
+        <TouchableOpacity className="flex-row items-center py-5" onPress={sair}>
           <Feather name="log-out" size={28} color="#F5F5F5" />
           <Text className="text-white text-xl ml-5">Sair</Text>
         </TouchableOpacity>
