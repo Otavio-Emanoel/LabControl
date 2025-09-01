@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -89,6 +89,8 @@ export default function AgendamentosDiaPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [renderCapture, setRenderCapture] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmLab, setConfirmLab] = useState<{ id: number; numero: string } | null>(null);
 
   const visibleTableRef = useRef<View>(null);
   const captureTableRef = useRef<View>(null);
@@ -177,6 +179,18 @@ export default function AgendamentosDiaPage() {
     }
   }, []);
 
+  const askSchedule = useCallback((labId: number, numero: string) => {
+    setConfirmLab({ id: labId, numero });
+    setConfirmVisible(true);
+  }, []);
+
+  const goToSchedule = useCallback(() => {
+    if (confirmLab) {
+      router.push(`/agendar?labId=${confirmLab.id}&date=${ymd}`);
+      setConfirmVisible(false);
+    }
+  }, [confirmLab, router, ymd]);
+
   return (
     <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
       {/* Header */}
@@ -257,9 +271,12 @@ export default function AgendamentosDiaPage() {
                             </Text>
                           </View>
                         ) : (
-                          <View style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}>
+                          <TouchableOpacity
+                            onPress={() => askSchedule(lab.id_Laboratorio, lab.numero)}
+                            style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}
+                          >
                             <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
-                          </View>
+                          </TouchableOpacity>
                         )}
                       </View>
                     );
@@ -282,6 +299,26 @@ export default function AgendamentosDiaPage() {
           </View>
         </View>
       </View>
+
+      {/* Modal de confirmação */}
+      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <View style={{ width: '92%', maxWidth: 420, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Agendar neste dia?</Text>
+            <Text style={{ color: '#9CA3AF', marginTop: 6 }}>
+              {`Você deseja agendar no dia ${ymd} para o Lab ${confirmLab?.numero ?? ''}?`}
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
+              <TouchableOpacity onPress={() => setConfirmVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
+                <Text style={{ color: 'white' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={goToSchedule} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
+                <Text style={{ color: 'white', fontWeight: '700' }}>Agendar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Versão offscreen para captura completa */}
       {renderCapture && (
