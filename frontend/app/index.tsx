@@ -53,6 +53,7 @@ export default function Index() {
 
   // Dados do usuário e reservas
   const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [myUserNome, setMyUserNome] = useState<string>("");
   const [reservas, setReservas] = useState<Reserva[]>([]);
 
   // Gera os próximos 7 dias (com YMD)
@@ -81,6 +82,7 @@ export default function Index() {
         if (stored) {
           const u = JSON.parse(stored);
           setMyUserId(u?.id_usuario ?? null);
+          setMyUserNome(u?.nome ?? "");
         }
       } catch {}
       try {
@@ -130,13 +132,13 @@ export default function Index() {
               <Ionicons name="notifications-outline" size={22} color="#000" />
             </TouchableOpacity>
 
-            <TouchableOpacity className="w-10 h-10 rounded-full bg-white items-center justify-center">
+            <TouchableOpacity className="w-10 h-10 rounded-full bg-white items-center justify-center" onPress={() => router.push('/user')}>
               <Ionicons name="person" size={22} color="#000" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text className="text-xs text-white/80 font-madimi mt-12">Olá User</Text>
+        <Text className="text-xs text-white/80 font-madimi mt-12">Olá {myUserNome || "Usuário"}</Text>
         <Text className="text-3xl text-white font-madimi">Bem vindo!</Text>
 
         {/* Barra de pesquisa */}
