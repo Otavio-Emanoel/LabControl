@@ -74,6 +74,9 @@ export default function ProfileScreen() {
     }
   };
 
+  const isAux = cargo === 'Auxiliar_Docente' || (typeof cargo === 'string' && cargo.toLowerCase().includes('auxiliar'));
+  const isCoord = cargo === 'Coordenador' || (typeof cargo === 'string' && cargo.toLowerCase().includes('coordenador'));
+
   return (
     <View style={{ flex: 1, backgroundColor: 'black', padding: 16 }}>
       {/* Bloco cinza contendo perfil e menu */}
@@ -140,7 +143,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* Botão visível apenas para Auxiliar Docente */}
-          {((cargo === 'Auxiliar_Docente') || (typeof cargo === 'string' && cargo.toLowerCase().includes('auxiliar')) ) && (
+          {isAux && (
             <TouchableOpacity
               onPress={() => router.push('/cadastro-usuario' as any)}
               style={{
@@ -157,19 +160,59 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#111827',
-              borderRadius: 12,
-            }}
-          >
-            <Text style={{ color: 'white' }}>Aulas do dia</Text>
-            <Ionicons name="chevron-forward" size={20} color="white" />
-          </TouchableOpacity>
+          {/* Adicionar curso - somente Auxiliar_Docente */}
+          {isAux && (
+            <TouchableOpacity
+              onPress={() => router.push('/adicionar-curso' as any)}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                backgroundColor: '#111827',
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Adicionar curso</Text>
+              <Ionicons name="library-outline" size={20} color="white" />
+            </TouchableOpacity>
+          )}
+
+          {/* Adicionar disciplina - Auxiliar_Docente e Coordenador */}
+          {(isAux || isCoord) && (
+            <TouchableOpacity
+              onPress={() => router.push('/adicionar-disciplina' as any)}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                backgroundColor: '#111827',
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Adicionar disciplina</Text>
+              <Ionicons name="book-outline" size={20} color="white" />
+            </TouchableOpacity>
+          )}
+
+          {/* Atribuir aula a professor - Auxiliar_Docente e Coordenador */}
+          {(isAux || isCoord) && (
+            <TouchableOpacity
+              onPress={() => router.push('/atribuir-aula' as any)}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                backgroundColor: '#111827',
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Atribuir aula a professor</Text>
+              <Ionicons name="people-outline" size={20} color="white" />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             onPress={sair}
