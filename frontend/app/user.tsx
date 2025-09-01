@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/nav';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -25,7 +25,6 @@ export default function ProfileScreen() {
 
   const loadUser = useCallback(async () => {
     try {
-      // tenta pegar do storage primeiro (salvo no login)
       const stored = await AsyncStorage.getItem('auth_user');
       if (stored) {
         const u = JSON.parse(stored);
@@ -37,7 +36,6 @@ export default function ProfileScreen() {
         setEmail('');
         setCargo('');
       }
-      // garante dados atualizados via /auth/me
       const res = await api.get<UserMe>('/auth/me');
       const me = res.data?.user;
       if (me) {
@@ -45,7 +43,6 @@ export default function ProfileScreen() {
         setCargo(me.cargo || '');
       }
     } catch (err) {
-      // se falhar, o guard deve redirecionar
       console.log('Falha ao carregar usuário:', err);
     }
   }, []);
@@ -54,7 +51,6 @@ export default function ProfileScreen() {
     loadUser();
   }, [loadUser]);
 
-  // Recarrega dados sempre que a tela volta a ficar ativa
   useFocusEffect(
     useCallback(() => {
       loadUser();
@@ -66,7 +62,6 @@ export default function ProfileScreen() {
     try {
       await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
     } finally {
-      // limpa estados locais e volta para login
       setNome('');
       setEmail('');
       setCargo('');
@@ -77,161 +72,140 @@ export default function ProfileScreen() {
   const isAux = cargo === 'Auxiliar_Docente' || (typeof cargo === 'string' && cargo.toLowerCase().includes('auxiliar'));
   const isCoord = cargo === 'Coordenador' || (typeof cargo === 'string' && cargo.toLowerCase().includes('coordenador'));
 
+  const initials = (nome || 'U')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .reduce((acc, part, idx, arr) => (idx === 0 || idx === arr.length - 1 ? acc + (part[0] || '') : acc), '')
+    .toUpperCase();
+
   return (
-    <View style={{ flex: 1, backgroundColor: 'black', padding: 16 }}>
-      {/* Bloco cinza contendo perfil e menu */}
-      <View
-        style={{
-          backgroundColor: '#1F2937',
-          borderRadius: 16,
-          paddingTop: 20,
-          paddingHorizontal: 20,
-          paddingBottom: 150,
-          gap: 24,
-          marginTop: 40,
-        }}
-      >
-        {/* Header do perfil */}
-        <View style={{ alignItems: 'center', gap: 8 }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: '#374151',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="person" size={40} color="white" />
+    <View style={{ flex: 1, backgroundColor: 'black' }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        {/* Header com imagem de fundo */}
+        <ImageBackground
+          source={require('../assets/images/home-background.jpg')}
+          style={{ height: 220, borderRadius: 20, overflow: 'hidden' }}
+          imageStyle={{ transform: [{ scale: 1.05 }] }}
+        >
+          <View style={{ position: 'absolute', inset: 0 as any, backgroundColor: 'rgba(0,0,0,0.45)' }} />
+          <View style={{ flex: 1, padding: 16, justifyContent: 'flex-end' }}>
+            {/* Avatar com anel */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' }}>
+                <Text style={{ color: 'white', fontSize: 26, fontWeight: '800' }}>{initials || 'U'}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: 'white', fontSize: 20, fontWeight: '800' }} numberOfLines={1}>{nome || 'Usuário'}</Text>
+                {email ? <Text style={{ color: '#BFDBFE' }} numberOfLines={1}>{email}</Text> : null}
+                {cargo ? (
+                  <View style={{ alignSelf: 'flex-start', marginTop: 6, backgroundColor: 'rgba(37,99,235,0.25)', borderColor: '#3B82F6', borderWidth: 1, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+                    <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>{cargo.replace('_', ' ')}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
           </View>
+        </ImageBackground>
 
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: 'bold' }}>{nome || 'Usuário'}</Text>
-          <Text style={{ color: '#3B82F6' }}>{email || 'Email não disponível'}</Text>
-          <Text style={{ color: '#9CA3AF' }}>{cargo ? `Cargo: ${cargo}` : ''}</Text>
-        </View>
+        {/* Ações principais */}
+        <View style={{ marginTop: 18, gap: 12 }}>
+          <Text style={{ color: '#9CA3AF', fontSize: 12, letterSpacing: 1 }}>AÇÕES</Text>
 
-        {/* Menu */}
-        <View style={{ gap: 16 }}>
           <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#111827',
-              borderRadius: 12,
-            }}
+            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
           >
-            <Text style={{ color: 'white' }}>Gerenciar senha</Text>
-            <Ionicons name="chevron-forward" size={20} color="white" />
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+              <Ionicons name="key-outline" size={18} color="#93C5FD" />
+            </View>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Gerenciar senha</Text>
+            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.replace('/agendamento')}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#111827',
-              borderRadius: 12,
-            }}
+            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
           >
-            <Text style={{ color: 'white' }}>Agendar laboratório</Text>
-            <Ionicons name="chevron-forward" size={20} color="white" />
-          </TouchableOpacity>
-
-          {/* Botão visível apenas para Auxiliar Docente */}
-          {isAux && (
-            <TouchableOpacity
-              onPress={() => router.push('/cadastro-usuario' as any)}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#111827',
-                borderRadius: 12,
-              }}
-            >
-              <Text style={{ color: 'white' }}>Adicionar novo usuário</Text>
-              <Ionicons name="person-add" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-
-          {/* Adicionar curso - somente Auxiliar_Docente */}
-          {isAux && (
-            <TouchableOpacity
-              onPress={() => router.push('/adicionar-curso' as any)}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#111827',
-                borderRadius: 12,
-              }}
-            >
-              <Text style={{ color: 'white' }}>Adicionar curso</Text>
-              <Ionicons name="library-outline" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-
-          {/* Adicionar disciplina - Auxiliar_Docente e Coordenador */}
-          {(isAux || isCoord) && (
-            <TouchableOpacity
-              onPress={() => router.push('/adicionar-disciplina' as any)}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#111827',
-                borderRadius: 12,
-              }}
-            >
-              <Text style={{ color: 'white' }}>Adicionar disciplina</Text>
-              <Ionicons name="book-outline" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-
-          {/* Atribuir aula a professor - Auxiliar_Docente e Coordenador */}
-          {(isAux || isCoord) && (
-            <TouchableOpacity
-              onPress={() => router.push('/atribuir-aula' as any)}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: 16,
-                backgroundColor: '#111827',
-                borderRadius: 12,
-              }}
-            >
-              <Text style={{ color: 'white' }}>Atribuir aula a professor</Text>
-              <Ionicons name="people-outline" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            onPress={sair}
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 16,
-              backgroundColor: '#B91C1C',
-              borderRadius: 12,
-              marginTop: 8,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Sair</Text>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+              <Ionicons name="calendar-outline" size={18} color="#93C5FD" />
+            </View>
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Agendar laboratório</Text>
+            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
           </TouchableOpacity>
         </View>
-      </View>
 
-      <Navbar active="perfil" />            
+        {/* Administração */}
+        {(isAux || isCoord) && (
+          <View style={{ marginTop: 18, gap: 12 }}>
+            <Text style={{ color: '#9CA3AF', fontSize: 12, letterSpacing: 1 }}>ADMINISTRAÇÃO</Text>
+
+            {isAux && (
+              <TouchableOpacity
+                onPress={() => router.push('/cadastro-usuario' as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="person-add-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Adicionar novo usuário</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+
+            {isAux && (
+              <TouchableOpacity
+                onPress={() => router.push('/adicionar-curso' as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="library-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Adicionar curso</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+
+            {(isAux || isCoord) && (
+              <TouchableOpacity
+                onPress={() => router.push('/adicionar-disciplina' as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="book-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Adicionar disciplina</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+
+            {(isAux || isCoord) && (
+              <TouchableOpacity
+                onPress={() => router.push('/atribuir-aula' as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="people-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Atribuir aula a professor</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* Sair */}
+        <View style={{ marginTop: 24 }}>
+          <TouchableOpacity
+            onPress={sair}
+            style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: '#B91C1C', borderRadius: 14 }}
+          >
+            <Ionicons name="exit-outline" size={18} color="#fff" />
+            <Text style={{ color: 'white', fontWeight: '800', marginLeft: 8 }}>Sair</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      <Navbar active="perfil" />
     </View>
   );
 }
