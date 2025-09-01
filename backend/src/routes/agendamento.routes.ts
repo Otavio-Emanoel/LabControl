@@ -6,7 +6,8 @@ import {
   listarAgendamentosPorUsuario,
   criarAgendamento,
   removerAgendamento,
-  editarAgendamento
+  editarAgendamento,
+  editarJustificativa
 } from '../controllers/agendamentos.controller';
 
 const router = Router();
@@ -29,6 +30,14 @@ router.post(
   authRequired,
   requireRole(['Coordenador', 'Auxiliar_Docente', 'Professor']),
   editarAgendamento
+);
+
+// Atualiza apenas justificativa
+router.post(
+  '/justificativa/:id',
+  authRequired,
+  requireRole(['Coordenador', 'Auxiliar_Docente', 'Professor']),
+  editarJustificativa
 );
 
 router.post(

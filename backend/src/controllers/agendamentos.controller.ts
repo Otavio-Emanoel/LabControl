@@ -48,6 +48,8 @@ async function todosAgendamentos() {
       r.horario,
       r.dia,
       r.justificativa,
+      r.fk_aulas,
+      d.nome AS nome_disciplina,
       u.id_usuario,
       u.nome AS nome_usuario,
       l.id_Laboratorio,
@@ -58,6 +60,8 @@ async function todosAgendamentos() {
       usuarios u ON r.fk_usuario = u.id_usuario
     INNER JOIN 
       laboratorio l ON r.fk_laboratorio = l.id_Laboratorio
+    LEFT JOIN
+      disciplina d ON r.fk_aulas = d.id_disciplina
   `;
 
   const [rows] = await pool.query(query);
@@ -72,6 +76,8 @@ async function agendamentoPorId(id: number) {
       r.horario,
       r.dia,
       r.justificativa,
+      r.fk_aulas,
+      d.nome AS nome_disciplina,
       u.id_usuario,
       u.nome AS nome_usuario,
       l.id_Laboratorio,
@@ -82,6 +88,8 @@ async function agendamentoPorId(id: number) {
       usuarios u ON r.fk_usuario = u.id_usuario
     INNER JOIN 
       laboratorio l ON r.fk_laboratorio = l.id_Laboratorio
+    LEFT JOIN
+      disciplina d ON r.fk_aulas = d.id_disciplina
     WHERE 
       r.id_Reserva = ?
   `;
@@ -102,6 +110,8 @@ async function agendamentosPorUsuario(id_usuario: number): Promise<any[]> {
       r.horario,
       r.dia,
       r.justificativa,
+      r.fk_aulas,
+      d.nome AS nome_disciplina,
       u.id_usuario,
       u.nome AS nome_usuario,
       l.id_Laboratorio,
@@ -112,6 +122,8 @@ async function agendamentosPorUsuario(id_usuario: number): Promise<any[]> {
       usuarios u ON r.fk_usuario = u.id_usuario
     INNER JOIN 
       laboratorio l ON r.fk_laboratorio = l.id_Laboratorio
+    LEFT JOIN
+      disciplina d ON r.fk_aulas = d.id_disciplina
     WHERE 
       u.id_usuario = ?
   `;
@@ -144,6 +156,14 @@ async function atualizarAgendamento(
   const values = [horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario, id];
 
   const [result]: any = await pool.query(query, values);
+  if (result?.affectedRows === 0) throw new Error('Agendamento não encontrado');
+  return result;
+}
+
+// atualizar somente justificativa (função interna)
+async function atualizarJustificativa(id: number, justificativa: string) {
+  const query = `UPDATE reserva SET justificativa = ? WHERE id_Reserva = ?`;
+  const [result]: any = await pool.query(query, [justificativa, id]);
   if (result?.affectedRows === 0) throw new Error('Agendamento não encontrado');
   return result;
 }
@@ -225,6 +245,16 @@ export const criarAgendamento = async (req: Request, res: Response) => {
     if (fk_aulas != null) {
       const [aRows]: any = await pool.query('SELECT id_disciplina FROM disciplina WHERE id_disciplina = ? LIMIT 1', [fk_aulas]);
       if (!Array.isArray(aRows) || aRows.length === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+      // Se for Professor, precisa estar vinculado à disciplina
+      if (user.cargo === 'Professor') {
+        const [pd]: any = await pool.query(
+          'SELECT id FROM professor_disciplina WHERE id_usuario = ? AND id_disciplina = ? LIMIT 1',
+          [user.id_usuario, fk_aulas]
+        );
+        if (!Array.isArray(pd) || pd.length === 0) {
+          return res.status(403).json({ error: 'Professor não vinculado à disciplina selecionada.' });
+        }
+      }
     }
 
     // bloqueia duplicidade: mesmo lab, dia e horário
@@ -265,5 +295,21 @@ export const editarAgendamento = async (req: Request, res: Response) => {
     const m = msg(error);
     if (m.includes('não encontrado')) return res.status(404).json({ error: m });
     res.status(500).json({ error: 'Erro ao atualizar agendamento', details: m });
+  }
+};
+
+export const editarJustificativa = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  const { justificativa } = req.body as { justificativa?: string };
+  try {
+    if (typeof justificativa !== 'string') {
+      return res.status(400).json({ error: 'Campo justificativa é obrigatório e deve ser string.' });
+    }
+    const result = await atualizarJustificativa(id, justificativa);
+    res.json(result);
+  } catch (error) {
+    const m = msg(error);
+    if (m.includes('não encontrado')) return res.status(404).json({ error: m });
+    res.status(500).json({ error: 'Erro ao atualizar justificativa', details: m });
   }
 };

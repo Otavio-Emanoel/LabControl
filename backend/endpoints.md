@@ -55,25 +55,38 @@
 - Cria novo agendamento
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token do usuário
+- Regras:
+  - Horário deve ser um dos horários permitidos
+  - Não permite datas passadas
+  - Se `fk_aulas` for enviado, a disciplina deve existir; se o usuário logado for Professor, ele deve estar vinculado a essa disciplina
+  - Impede duplicidade por (fk_laboratorio, dia, horario)
 
 **GET /agendamentos/all**
 - Lista todos os agendamentos
 - Necessário token
+- Retorna também: `fk_aulas` (id_disciplina) e `nome_disciplina` quando houver
 
 **GET /agendamentos/:id**
 - Busca agendamento por ID
 - Necessário token
+- Retorna também: `fk_aulas` (id_disciplina) e `nome_disciplina` quando houver
 
 **GET /agendamentos/usuario/:id_usuario**
 - Lista agendamentos de um usuário
 - Necessário token
+- Retorna também: `fk_aulas` (id_disciplina) e `nome_disciplina` quando houver
 
 **POST /agendamentos/update/:id**
-- Atualiza agendamento
+- Atualiza agendamento (todos os campos)
 - Body: `{ horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario }`
 - Necessário token
 
-**POST /agendamentos/update/:id**
+**POST /agendamentos/justificativa/:id**
+- Atualiza apenas a justificativa do agendamento
+- Body: `{ justificativa }`
+- Necessário token
+
+**POST /agendamentos/delete/:id**
 - Remove agendamento
 - Necessário token
 

@@ -3,6 +3,7 @@ import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
 
 export interface AuthPayload {
 	sub: number;
+	id_usuario: number;
 	nome: string;
 	cargo: string;
 	iat?: number | undefined;
@@ -24,6 +25,7 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
 				const subNum = typeof subRaw === 'string' ? Number(subRaw) : (subRaw as number | undefined);
 				const userPayload: AuthPayload = {
 					sub: subNum ?? 0,
+					id_usuario: subNum ?? 0,
 				nome: (payload as any).nome,
 				cargo: (payload as any).cargo,
 				iat: payload.iat,

@@ -113,7 +113,6 @@ export default function AgendarLabPage() {
   // Carrega professores/disciplinas se admin
   useEffect(() => {
     const loadProfDisc = async () => {
-      if (!isAdmin) return;
       try {
         const res = await api.get<ProfDiscRow[]>(`/auth/professores-disciplinas`);
         setProfDisc(res.data as any);
@@ -122,7 +121,7 @@ export default function AgendarLabPage() {
       }
     };
     loadProfDisc();
-  }, [isAdmin]);
+  }, []);
 
   // Carrega informações do lab e reservas
   useEffect(() => {
@@ -155,10 +154,14 @@ export default function AgendarLabPage() {
     // define professor conforme cargo
     if (isAdmin) {
       setSelectedProfessor(null);
+      setSelectedDisciplina(null);
     } else {
       setSelectedProfessor(myUserId ?? null);
+      // auto-seleciona a primeira disciplina vinculada ao professor (normalizando tipos)
+      const userIdNum = Number(myUserId ?? NaN);
+      const firstDisc = profDisc.find((d) => Number(d.id_usuario) === userIdNum);
+      setSelectedDisciplina(firstDisc ? Number(firstDisc.id_disciplina) : null);
     }
-    setSelectedDisciplina(null);
     setJustificativa('');
     setShowForm(true);
   };
@@ -170,18 +173,34 @@ export default function AgendarLabPage() {
       setErrorMsg('Selecione um professor.');
       return;
     }
+
+    // Validação específica para Professor: deve escolher disciplina e estar vinculado a ela
+    if (myCargo === 'Professor') {
+      if (selectedDisciplina == null) {
+        setErrorMsg('Selecione uma disciplina.');
+        return;
+      }
+      const allowed = profDisc.some(
+        (d) => Number(d.id_usuario) === Number(myUserId) && Number(d.id_disciplina) === Number(selectedDisciplina)
+      );
+      if (!allowed) {
+        setErrorMsg('Professor não vinculado à disciplina selecionada.');
+        return;
+      }
+    }
+
     try {
       setSavingSlot(slotToSchedule);
       setErrorMsg(null);
       await api.post('/agendamentos/new', {
         horario: `${slotToSchedule}:00`,
         dia: date,
-        fk_aulas: selectedDisciplina ?? null,
+        fk_aulas: selectedDisciplina != null ? Number(selectedDisciplina) : null,
         justificativa: justificativa || null,
         fk_laboratorio: labId,
         fk_usuario,
       });
-      // Recarrega reservas do backend para refletir imediatamente e evitar divergências de tipos
+      // Recarrega reservas do backend para refletir imediatamente
       const reservasRes = await api.get<Reserva[]>(`/agendamentos/all`);
       const all = reservasRes.data as any as Reserva[];
       setReservas(all.filter((r: any) => r.id_Laboratorio === labId && toYMD(r.dia) === date));
@@ -273,7 +292,7 @@ export default function AgendarLabPage() {
                   <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
                   <View style={{ backgroundColor: '#0F172A', borderRadius: 12 }}>
                     {Array.from(new Map(profDisc.map(p => [p.id_usuario, p])).values()).map((p) => (
-                      <TouchableOpacity key={p.id_usuario} onPress={() => setSelectedProfessor(p.id_usuario)} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedProfessor === p.id_usuario ? '#1C4AED' : 'transparent' }}>
+                      <TouchableOpacity key={p.id_usuario} onPress={() => { setSelectedProfessor(p.id_usuario); setSelectedDisciplina(null); }} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedProfessor === p.id_usuario ? '#1C4AED' : 'transparent' }}>
                         <Text style={{ color: 'white' }}>{p.nome_professor}</Text>
                       </TouchableOpacity>
                     ))}
@@ -288,11 +307,26 @@ export default function AgendarLabPage() {
                           <Text style={{ color: 'white' }}>{d.nome_disciplina}</Text>
                         </TouchableOpacity>
                       ))}
+                    {profDisc.filter((d) => !selectedProfessor || d.id_usuario === selectedProfessor).length === 0 && (
+                      <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
+                    )}
                   </View>
                 </View>
               ) : (
                 <View style={{ marginTop: 12 }}>
-                  <Text style={{ color: '#E5E7EB' }}>Você agendará em seu nome.</Text>
+                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
+                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, maxHeight: 160 }}>
+                    {profDisc
+                      .filter((d) => d.id_usuario === myUserId)
+                      .map((d) => (
+                        <TouchableOpacity key={`${d.id_usuario}-${d.id_disciplina}`} onPress={() => { setSelectedDisciplina(d.id_disciplina); setErrorMsg(null); }} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedDisciplina === d.id_disciplina ? '#1C4AED' : 'transparent' }}>
+                          <Text style={{ color: 'white' }}>{d.nome_disciplina}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    {profDisc.filter((d) => d.id_usuario === myUserId).length === 0 && (
+                      <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas. Solicite vínculo ao coordenador.</Text>
+                    )}
+                  </View>
                 </View>
               )}
 
