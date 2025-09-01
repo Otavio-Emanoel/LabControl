@@ -139,6 +139,24 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={20} color="white" />
           </TouchableOpacity>
 
+          {/* Botão visível apenas para Auxiliar Docente */}
+          {((cargo === 'Auxiliar_Docente') || (typeof cargo === 'string' && cargo.toLowerCase().includes('auxiliar')) ) && (
+            <TouchableOpacity
+              onPress={() => router.push('/cadastro-usuario' as any)}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 16,
+                backgroundColor: '#111827',
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: 'white' }}>Adicionar novo usuário</Text>
+              <Ionicons name="person-add" size={20} color="white" />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={{
               flexDirection: 'row',
