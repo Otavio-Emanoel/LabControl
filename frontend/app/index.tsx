@@ -14,6 +14,7 @@ import MeusAgendamentosCard from "@/components/meusAgendamentosCard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/lib/api";
 import { useRouter } from "expo-router";
+import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 // Tipos retornados pelo backend
 interface Reserva {
@@ -50,6 +51,7 @@ export default function Index() {
   const [semana, setSemana] = useState<{ dia: string; abrev: string; ymd: string }[]>([]);
   const [diaSelecionado, setDiaSelecionado] = useState<string>(""); // YYYY-MM-DD
   const router = useRouter();
+  const { ready } = useAuthGuard();
 
   // Dados do usuário e reservas
   const [myUserId, setMyUserId] = useState<number | null>(null);
@@ -74,8 +76,9 @@ export default function Index() {
     return novaSemana;
   };
 
-  // Carrega usuário e reservas
+  // Carrega usuário e reservas (após auth verificada)
   useEffect(() => {
+    if (!ready) return;
     const init = async () => {
       try {
         const stored = await AsyncStorage.getItem("auth_user");
@@ -93,7 +96,7 @@ export default function Index() {
       }
     };
     init();
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
     const semanaAtual = gerarSemanaAtual();
@@ -107,6 +110,10 @@ export default function Index() {
       (r) => r.id_usuario === myUserId && (r.dia || "").slice(0, 10) === diaSelecionado
     );
   }, [reservas, myUserId, diaSelecionado]);
+
+  if (!ready) {
+    return <View className="flex-1 bg-black" />;
+  }
 
   return (
     <View className="flex-1 bg-black">

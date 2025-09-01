@@ -1,41 +1,51 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
+import { api } from "@/lib/api";
 
 export function useAuthGuard() {
   const router = useRouter();
   const pathname = usePathname();
+  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const API_URL = ((Constants.expoConfig?.extra as any)?.API_URL as string | undefined) || process.env.EXPO_PUBLIC_API_URL;
-      const token = await AsyncStorage.getItem("auth_token");
-
-      const goToLogin = async () => {
-        if (token) {
-          await AsyncStorage.removeItem("auth_token");
-        }
-        if (pathname !== "/login") {
-          router.replace("/login");
-        }
-      };
-
-      if (!API_URL || !token) {
-        await goToLogin();
-        return;
-      }
+    let mounted = true;
+    (async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          await goToLogin();
+        const token = await AsyncStorage.getItem("auth_token");
+
+        // Sem token → redireciona imediatamente para login e não renderiza a tela atual
+        if (!token) {
+          if (pathname !== "/login") router.replace("/login" as any);
+          return;
         }
+
+        // Com token → configura header e tenta obter /auth/me (opcional)
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        try {
+          const me = await api.get("/auth/me");
+          if (mounted) setUser(me.data?.user ?? null);
+        } catch {
+          // Token inválido → volta pro login
+          if (pathname !== "/login") router.replace("/login" as any);
+          return;
+        }
+
+        if (mounted) setReady(true);
       } catch {
-        await goToLogin();
+        if (pathname !== "/login") router.replace("/login" as any);
+      } finally {
+        if (mounted) setReady(true);
       }
+    })();
+
+    return () => {
+      mounted = false;
     };
-    checkAuth();
   }, [pathname, router]);
+
+  return { ready, user };
 }
+
+export default useAuthGuard;
