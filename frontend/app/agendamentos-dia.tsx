@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -7,6 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Slots fixos (alinhar com backend)
 const SLOTS = [
@@ -92,6 +93,16 @@ export default function AgendamentosDiaPage() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmLab, setConfirmLab] = useState<{ id: number; numero: string } | null>(null);
 
+  // Novos estados para interação com reservas
+  const [cargo, setCargo] = useState<string>('');
+  const isAuxCoord = cargo === 'Coordenador' || cargo === 'Auxiliar_Docente' || (typeof cargo === 'string' && /(coordenador|auxiliar)/i.test(cargo));
+  const [resModalVisible, setResModalVisible] = useState(false);
+  const [selectedRes, setSelectedRes] = useState<Reserva | null>(null);
+  const [editJust, setEditJust] = useState(false);
+  const [editJustText, setEditJustText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const visibleTableRef = useRef<View>(null);
   const captureTableRef = useRef<View>(null);
 
@@ -116,6 +127,25 @@ export default function AgendamentosDiaPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Carrega cargo do usuário logado
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('auth_user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u?.cargo) setCargo(u.cargo);
+        }
+        // fallback para API
+        try {
+          const me = await api.get<{ user?: { cargo?: string } }>(`/auth/me`);
+          const c = me.data?.user?.cargo;
+          if (c) setCargo(c);
+        } catch {}
+      } catch {}
+    })();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -184,12 +214,62 @@ export default function AgendamentosDiaPage() {
     setConfirmVisible(true);
   }, []);
 
+  // Abre modal de detalhes da reserva
+  const openReserva = useCallback((res: Reserva) => {
+    setSelectedRes(res);
+    setEditJust(false);
+    setEditJustText(res.justificativa || '');
+    setResModalVisible(true);
+  }, []);
+
   const goToSchedule = useCallback(() => {
     if (confirmLab) {
       router.push(`/agendar?labId=${confirmLab.id}&date=${ymd}`);
       setConfirmVisible(false);
     }
   }, [confirmLab, router, ymd]);
+
+  const confirmarRemocao = useCallback(() => {
+    if (!selectedRes) return;
+    Alert.alert(
+      'Remover agendamento',
+      'Tem certeza que deseja remover este agendamento?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Remover',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await api.post(`/agendamentos/delete/${selectedRes.id_Reserva}`);
+              setResModalVisible(false);
+              setSelectedRes(null);
+              await load();
+            } catch (e: any) {
+              Alert.alert('Erro', e?.response?.data?.error || 'Falha ao remover agendamento');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [selectedRes, load]);
+
+  const salvarJustificativa = useCallback(async () => {
+    if (!selectedRes) return;
+    try {
+      setSaving(true);
+      await api.post(`/agendamentos/justificativa/${selectedRes.id_Reserva}`, { justificativa: editJustText });
+      setEditJust(false);
+      await load();
+    } catch (e: any) {
+      Alert.alert('Erro', e?.response?.data?.error || 'Falha ao salvar justificativa');
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedRes, editJustText, load]);
 
   return (
     <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
@@ -259,17 +339,19 @@ export default function AgendamentosDiaPage() {
                     return (
                       <View key={key} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
                         {r ? (
-                          <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
-                                <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
+                          <TouchableOpacity onPress={() => openReserva(r)} activeOpacity={0.8}>
+                            <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
+                                </View>
+                                <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
                               </View>
-                              <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                              <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
+                                {r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento'}
+                              </Text>
                             </View>
-                            <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
-                              {r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento'}
-                            </Text>
-                          </View>
+                          </TouchableOpacity>
                         ) : (
                           <TouchableOpacity
                             onPress={() => askSchedule(lab.id_Laboratorio, lab.numero)}
@@ -315,6 +397,65 @@ export default function AgendamentosDiaPage() {
               <TouchableOpacity onPress={goToSchedule} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
                 <Text style={{ color: 'white', fontWeight: '700' }}>Agendar</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal de detalhes da reserva */}
+      <Modal visible={resModalVisible} transparent animationType="fade" onRequestClose={() => setResModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <View style={{ width: '92%', maxWidth: 480, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
+            <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Detalhes do agendamento</Text>
+            {selectedRes ? (
+              <View style={{ marginTop: 10 }}>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Professor: <Text style={{ color: 'white' }}>{selectedRes.nome_usuario}</Text></Text>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Disciplina: <Text style={{ color: 'white' }}>{selectedRes.nome_disciplina || '-'}</Text></Text>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Laboratório: <Text style={{ color: 'white' }}>Lab {selectedRes.numero_laboratorio}</Text></Text>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Dia: <Text style={{ color: 'white' }}>{toYMD(selectedRes.dia)}</Text></Text>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Horário: <Text style={{ color: 'white' }}>{timeToHHmm(selectedRes.horario)}</Text></Text>
+
+                <View style={{ marginTop: 10 }}>
+                  <Text style={{ color: '#9CA3AF' }}>Justificativa:</Text>
+                  {editJust ? (
+                    <TextInput
+                      value={editJustText}
+                      onChangeText={setEditJustText}
+                      placeholder="Justificativa"
+                      placeholderTextColor="#6B7280"
+                      multiline
+                      style={{ marginTop: 6, minHeight: 80, color: 'white', backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}
+                    />
+                  ) : (
+                    <View style={{ marginTop: 6, backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
+                      <Text style={{ color: 'white' }}>{selectedRes.justificativa || '-'}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            ) : null}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16, alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setResModalVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
+                <Text style={{ color: 'white' }}>Fechar</Text>
+              </TouchableOpacity>
+
+              {isAuxCoord ? (
+                editJust ? (
+                  <TouchableOpacity onPress={salvarJustificativa} disabled={saving} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: saving ? '#274b6b' : '#3B96E2', opacity: saving ? 0.8 : 1 }}>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>{saving ? 'Salvando...' : 'Salvar'}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <>
+                    <TouchableOpacity onPress={() => setEditJust(true)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#2563EB' }}>
+                      <Text style={{ color: 'white', fontWeight: '700' }}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
+                      <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover'}</Text>
+                    </TouchableOpacity>
+                  </>
+                )
+              ) : null}
             </View>
           </View>
         </View>
