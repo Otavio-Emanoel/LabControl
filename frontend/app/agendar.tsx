@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
@@ -37,6 +37,9 @@ interface ProfDiscRow {
   id_disciplina: number;
   nome_disciplina: string;
 }
+
+interface Curso { id_curso: number; nome: string }
+interface Disciplina { id_disciplina: number; nome: string; id_curso: number }
 
 // Converte valor de dia (Date ou string) para 'YYYY-MM-DD'
 function toYMD(dia: unknown): string {
@@ -95,6 +98,12 @@ export default function AgendarLabPage() {
 
   // Para admins
   const [profDisc, setProfDisc] = useState<ProfDiscRow[]>([]);
+  const [cursos, setCursos] = useState<Curso[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+
+  // Filtros de busca no modal
+  const [profQuery, setProfQuery] = useState('');
+  const [discQuery, setDiscQuery] = useState('');
 
   const isAdmin = useMemo(() => myCargo === 'Coordenador' || myCargo === 'Auxiliar_Docente', [myCargo]);
 
@@ -110,7 +119,7 @@ export default function AgendarLabPage() {
     });
   }, []);
 
-  // Carrega professores/disciplinas se admin
+  // Carrega professores/disciplinas se admin (vínculos)
   useEffect(() => {
     const loadProfDisc = async () => {
       try {
@@ -122,6 +131,80 @@ export default function AgendarLabPage() {
     };
     loadProfDisc();
   }, []);
+
+  // Carrega cursos e disciplinas (para exibir nome do curso ao lado da disciplina)
+  useEffect(() => {
+    const loadMeta = async () => {
+      try {
+        const [cursosRes, discRes] = await Promise.all([
+          api.get<Curso[]>(`/auth/cursos`),
+          api.get<Disciplina[]>(`/auth/disciplinas`),
+        ]);
+        setCursos((cursosRes.data as any) || []);
+        setDisciplinas((discRes.data as any) || []);
+      } catch (e) {
+        console.log('Falha ao carregar cursos/disciplinas', e);
+      }
+    };
+    loadMeta();
+  }, []);
+
+  const cursoById = useMemo(() => new Map(cursos.map(c => [Number(c.id_curso), c.nome])), [cursos]);
+  const discToCursoId = useMemo(() => new Map(disciplinas.map(d => [Number(d.id_disciplina), Number(d.id_curso)])), [disciplinas]);
+  const getCursoNomeByDisciplina = useCallback((id_disc?: number | null) => {
+    if (id_disc == null) return '';
+    const idCurso = discToCursoId.get(Number(id_disc));
+    return idCurso ? (cursoById.get(Number(idCurso)) || '') : '';
+  }, [discToCursoId, cursoById]);
+
+  // Listas derivadas para o modal
+  const professores = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const r of profDisc) {
+      map.set(Number(r.id_usuario), r.nome_professor);
+    }
+    return Array.from(map.entries())
+      .map(([id, nome]) => ({ id_usuario: id, nome_professor: nome }))
+      .sort((a, b) => a.nome_professor.localeCompare(b.nome_professor));
+  }, [profDisc]);
+
+  const filteredProfessores = useMemo(() => {
+    const q = profQuery.trim().toLowerCase();
+    if (!q) return professores;
+    return professores.filter(p => p.nome_professor.toLowerCase().includes(q));
+  }, [profQuery, professores]);
+
+  const discForContext = useMemo(() => {
+    if (isAdmin) {
+      if (!selectedProfessor) return [] as (ProfDiscRow & { cursoNome?: string })[];
+      return profDisc.filter(d => d.id_usuario === selectedProfessor);
+    }
+    return profDisc.filter(d => d.id_usuario === myUserId);
+  }, [isAdmin, selectedProfessor, profDisc, myUserId]);
+
+  const discWithCourse = useMemo(() =>
+    discForContext.map(d => ({ ...d, cursoNome: getCursoNomeByDisciplina(d.id_disciplina) })),
+  [discForContext, getCursoNomeByDisciplina]);
+
+  const filteredDisciplinas = useMemo(() => {
+    const q = discQuery.trim().toLowerCase();
+    if (!q) return discWithCourse;
+    return discWithCourse.filter(d =>
+      d.nome_disciplina.toLowerCase().includes(q) || (d.cursoNome || '').toLowerCase().includes(q)
+    );
+  }, [discQuery, discWithCourse]);
+
+  const selectedProfessorName = useMemo(() => {
+    if (!selectedProfessor) return '';
+    return professores.find(p => p.id_usuario === selectedProfessor)?.nome_professor || '';
+  }, [professores, selectedProfessor]);
+
+  const selectedDisciplinaLabel = useMemo(() => {
+    if (selectedDisciplina == null) return '';
+    const d = discWithCourse.find(x => x.id_disciplina === selectedDisciplina);
+    if (!d) return '';
+    return `${d.nome_disciplina}${d.cursoNome ? ` · ${d.cursoNome}` : ''}`;
+  }, [discWithCourse, selectedDisciplina]);
 
   // Carrega informações do lab e reservas
   useEffect(() => {
@@ -274,7 +357,6 @@ export default function AgendarLabPage() {
       </View>
 
       {/* Formulário de agendamento */}
-      {/* Substitui bottom sheet por Modal centralizado */}
       <Modal
         visible={showForm}
         transparent
@@ -283,49 +365,144 @@ export default function AgendarLabPage() {
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#111827', borderRadius: 16, overflow: 'hidden', maxHeight: '85%' }}>
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
+            <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Novo Agendamento</Text>
               <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Horário: {slotToSchedule} | Dia: {date}</Text>
 
-              {isAdmin ? (
-                <View style={{ marginTop: 12 }}>
-                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
-                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12 }}>
-                    {Array.from(new Map(profDisc.map(p => [p.id_usuario, p])).values()).map((p) => (
-                      <TouchableOpacity key={p.id_usuario} onPress={() => { setSelectedProfessor(p.id_usuario); setSelectedDisciplina(null); }} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedProfessor === p.id_usuario ? '#1C4AED' : 'transparent' }}>
-                        <Text style={{ color: 'white' }}>{p.nome_professor}</Text>
+              {/* Chips de seleção */}
+              {(selectedProfessor || selectedDisciplina != null) && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                  {selectedProfessor ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                      <Ionicons name="person-outline" size={14} color="#93C5FD" />
+                      <Text style={{ color: 'white', marginLeft: 6 }}>{selectedProfessorName}</Text>
+                      <TouchableOpacity onPress={() => { setSelectedProfessor(null); setSelectedDisciplina(null); }} style={{ marginLeft: 8 }}>
+                        <Ionicons name="close" size={14} color="#9CA3AF" />
                       </TouchableOpacity>
-                    ))}
+                    </View>
+                  ) : null}
+                  {selectedDisciplina != null ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                      <Ionicons name="book-outline" size={14} color="#93C5FD" />
+                      <Text style={{ color: 'white', marginLeft: 6 }}>{selectedDisciplinaLabel}</Text>
+                      <TouchableOpacity onPress={() => setSelectedDisciplina(null)} style={{ marginLeft: 8 }}>
+                        <Ionicons name="close" size={14} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              {isAdmin ? (
+                <View style={{ marginTop: 16 }}>
+                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
+                  <TextInput
+                    placeholder="Buscar professor..."
+                    placeholderTextColor="#6B7280"
+                    value={profQuery}
+                    onChangeText={setProfQuery}
+                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
+                  />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredProfessores.length} resultado(s)</Text>
+                    {profQuery.length > 0 && (
+                      <TouchableOpacity onPress={() => setProfQuery('')}>
+                        <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                    <FlatList
+                      data={filteredProfessores}
+                      keyExtractor={(item) => String(item.id_usuario)}
+                      style={{ height: 220 }}
+                      nestedScrollEnabled
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
+                          style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
+                        >
+                          <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
+                        </TouchableOpacity>
+                      )}
+                      ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>}
+                    />
                   </View>
 
-                  <Text style={{ color: '#E5E7EB', marginVertical: 6 }}>Disciplina</Text>
-                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, maxHeight: 160 }}>
-                    {profDisc
-                      .filter((d) => !selectedProfessor || d.id_usuario === selectedProfessor)
-                      .map((d) => (
-                        <TouchableOpacity key={`${d.id_usuario}-${d.id_disciplina}`} onPress={() => setSelectedDisciplina(d.id_disciplina)} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedDisciplina === d.id_disciplina ? '#1C4AED' : 'transparent' }}>
-                          <Text style={{ color: 'white' }}>{d.nome_disciplina}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    {profDisc.filter((d) => !selectedProfessor || d.id_usuario === selectedProfessor).length === 0 && (
-                      <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
-                    )}
-                  </View>
+                  <Text style={{ color: '#E5E7EB', marginTop: 16, marginBottom: 6 }}>Disciplina</Text>
+                  {!selectedProfessor ? (
+                    <Text style={{ color: '#9CA3AF' }}>Selecione um professor para listar as disciplinas.</Text>
+                  ) : (
+                    <>
+                      <TextInput
+                        placeholder="Buscar disciplina ou curso..."
+                        placeholderTextColor="#6B7280"
+                        value={discQuery}
+                        onChangeText={setDiscQuery}
+                        style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
+                      />
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredDisciplinas.length} resultado(s)</Text>
+                        {discQuery.length > 0 && (
+                          <TouchableOpacity onPress={() => setDiscQuery('')}>
+                            <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                        <FlatList
+                          data={filteredDisciplinas}
+                          keyExtractor={(item) => `${item.id_usuario}-${item.id_disciplina}`}
+                          style={{ height: 220 }}
+                          nestedScrollEnabled
+                          renderItem={({ item }) => (
+                            <TouchableOpacity
+                              onPress={() => setSelectedDisciplina(item.id_disciplina)}
+                              style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
+                            >
+                              <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                            </TouchableOpacity>
+                          )}
+                          ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>}
+                        />
+                      </View>
+                    </>
+                  )}
                 </View>
               ) : (
-                <View style={{ marginTop: 12 }}>
+                <View style={{ marginTop: 16 }}>
                   <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
-                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, maxHeight: 160 }}>
-                    {profDisc
-                      .filter((d) => d.id_usuario === myUserId)
-                      .map((d) => (
-                        <TouchableOpacity key={`${d.id_usuario}-${d.id_disciplina}`} onPress={() => { setSelectedDisciplina(d.id_disciplina); setErrorMsg(null); }} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', backgroundColor: selectedDisciplina === d.id_disciplina ? '#1C4AED' : 'transparent' }}>
-                          <Text style={{ color: 'white' }}>{d.nome_disciplina}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    {profDisc.filter((d) => d.id_usuario === myUserId).length === 0 && (
-                      <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas. Solicite vínculo ao coordenador.</Text>
+                  <TextInput
+                    placeholder="Buscar disciplina ou curso..."
+                    placeholderTextColor="#6B7280"
+                    value={discQuery}
+                    onChangeText={setDiscQuery}
+                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
+                  />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredDisciplinas.length} resultado(s)</Text>
+                    {discQuery.length > 0 && (
+                      <TouchableOpacity onPress={() => setDiscQuery('')}>
+                        <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
+                      </TouchableOpacity>
                     )}
+                  </View>
+                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                    <FlatList
+                      data={filteredDisciplinas}
+                      keyExtractor={(item) => `${item.id_usuario}-${item.id_disciplina}`}
+                      style={{ height: 220 }}
+                      nestedScrollEnabled
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
+                          style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
+                        >
+                          <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                        </TouchableOpacity>
+                      )}
+                      ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>}
+                    />
                   </View>
                 </View>
               )}
