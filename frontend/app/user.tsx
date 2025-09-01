@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/nav';
@@ -6,6 +6,7 @@ import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface UserMe {
   user?: {
@@ -22,36 +23,55 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState<string>('');
   const [cargo, setCargo] = useState<string>('');
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        // tenta pegar do storage primeiro (salvo no login)
-        const stored = await AsyncStorage.getItem('auth_user');
-        if (stored) {
-          const u = JSON.parse(stored);
-          setNome(u?.nome || '');
-          setEmail(u?.email || '');
-          setCargo(u?.cargo || '');
-        }
-        // garante dados atualizados via /auth/me
-        const res = await api.get<UserMe>('/auth/me');
-        const me = res.data?.user;
-        if (me) {
-          setNome(me.nome || '');
-          setCargo(me.cargo || '');
-        }
-      } catch (e) {
-        // se falhar, o guard deve redirecionar
-        console.log('Falha ao carregar usuário:', e);
+  const loadUser = useCallback(async () => {
+    try {
+      // tenta pegar do storage primeiro (salvo no login)
+      const stored = await AsyncStorage.getItem('auth_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        setNome(u?.nome || '');
+        setEmail(u?.email || '');
+        setCargo(u?.cargo || '');
+      } else {
+        setNome('');
+        setEmail('');
+        setCargo('');
       }
-    };
-    loadUser();
+      // garante dados atualizados via /auth/me
+      const res = await api.get<UserMe>('/auth/me');
+      const me = res.data?.user;
+      if (me) {
+        setNome(me.nome || '');
+        setCargo(me.cargo || '');
+      }
+    } catch (err) {
+      // se falhar, o guard deve redirecionar
+      console.log('Falha ao carregar usuário:', err);
+    }
   }, []);
 
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
+
+  // Recarrega dados sempre que a tela volta a ficar ativa
+  useFocusEffect(
+    useCallback(() => {
+      loadUser();
+      return () => {};
+    }, [loadUser])
+  );
+
   const sair = async () => {
-    await AsyncStorage.removeItem('auth_token');
-    await AsyncStorage.removeItem('auth_user');
-    router.replace('/login');
+    try {
+      await AsyncStorage.multiRemove(['auth_token', 'auth_user']);
+    } finally {
+      // limpa estados locais e volta para login
+      setNome('');
+      setEmail('');
+      setCargo('');
+      router.replace('/login');
+    }
   };
 
   return (

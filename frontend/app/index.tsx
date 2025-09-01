@@ -8,20 +8,58 @@ import {
 } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Nav from "@/components/nav";
 import MeusAgendamentosCard from "@/components/meusAgendamentosCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api } from "@/lib/api";
+import { useRouter } from "expo-router";
+
+// Tipos retornados pelo backend
+interface Reserva {
+  id_Reserva: number;
+  horario: string; // HH:mm:ss
+  dia: string; // YYYY-MM-DD
+  justificativa?: string | null;
+  fk_aulas?: number | null;
+  nome_disciplina?: string | null;
+  id_usuario: number;
+  nome_usuario: string;
+  id_Laboratorio: number;
+  numero_laboratorio: string;
+}
+
+function formatYMD(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function addMinutesHHmm(hhmm: string, minutes: number) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date(0, 0, 0, h || 0, m || 0, 0);
+  d.setMinutes(d.getMinutes() + minutes);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
 
 export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [semana, setSemana] = useState<{ dia: string; abrev: string }[]>([]);
-  const [diaSelecionado, setDiaSelecionado] = useState<string>("");
+  const [semana, setSemana] = useState<{ dia: string; abrev: string; ymd: string }[]>([]);
+  const [diaSelecionado, setDiaSelecionado] = useState<string>(""); // YYYY-MM-DD
+  const router = useRouter();
 
-  // Gera os próximos 7 dias
+  // Dados do usuário e reservas
+  const [myUserId, setMyUserId] = useState<number | null>(null);
+  const [reservas, setReservas] = useState<Reserva[]>([]);
+
+  // Gera os próximos 7 dias (com YMD)
   const gerarSemanaAtual = () => {
     const diasSemana = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
     const hoje = new Date();
-    const novaSemana = [];
+    const novaSemana: { dia: string; abrev: string; ymd: string }[] = [];
 
     for (let i = 0; i < 7; i++) {
       const data = new Date();
@@ -29,16 +67,44 @@ export default function Index() {
       novaSemana.push({
         dia: data.getDate().toString(),
         abrev: diasSemana[data.getDay()],
+        ymd: formatYMD(data),
       });
     }
     return novaSemana;
   };
 
+  // Carrega usuário e reservas
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const stored = await AsyncStorage.getItem("auth_user");
+        if (stored) {
+          const u = JSON.parse(stored);
+          setMyUserId(u?.id_usuario ?? null);
+        }
+      } catch {}
+      try {
+        const res = await api.get<Reserva[]>("/agendamentos/all");
+        setReservas(res.data as any);
+      } catch (e) {
+        console.log("Falha ao carregar reservas", e);
+      }
+    };
+    init();
+  }, []);
+
   useEffect(() => {
     const semanaAtual = gerarSemanaAtual();
     setSemana(semanaAtual);
-    setDiaSelecionado(semanaAtual[0].dia); // seleciona hoje por padrão
+    setDiaSelecionado(semanaAtual[0].ymd); // seleciona hoje por padrão
   }, []);
+
+  const meusAgendamentosDoDia = useMemo(() => {
+    if (!myUserId || !diaSelecionado) return [] as Reserva[];
+    return reservas.filter(
+      (r) => r.id_usuario === myUserId && (r.dia || "").slice(0, 10) === diaSelecionado
+    );
+  }, [reservas, myUserId, diaSelecionado]);
 
   return (
     <View className="flex-1 bg-black">
@@ -91,21 +157,21 @@ export default function Index() {
           {semana.map((item, i) => (
             <TouchableOpacity
               key={i}
-              onPress={() => setDiaSelecionado(item.dia)}
+              onPress={() => setDiaSelecionado(item.ymd)}
               className={`flex-1 mx-1 py-2 rounded-xl ${
-                item.dia === diaSelecionado ? "bg-[#1C4AED]" : ""
+                item.ymd === diaSelecionado ? "bg-[#1C4AED]" : ""
               }`}
             >
               <Text
                 className={`text-center text-xs ${
-                  item.dia === diaSelecionado ? "text-white" : "text-white/70"
+                  item.ymd === diaSelecionado ? "text-white" : "text-white/70"
                 } font-semibold`}
               >
                 {item.abrev}
               </Text>
               <Text
                 className={`text-center mt-1 ${
-                  item.dia === diaSelecionado ? "text-white" : "text-white/70"
+                  item.ymd === diaSelecionado ? "text-white" : "text-white/70"
                 } font-semibold`}
               >
                 {item.dia}
@@ -117,14 +183,32 @@ export default function Index() {
         {/* Título de Aulas */}
         <View className="flex-row justify-between items-center mt-6">
           <Text className="text-lg font-semibold text-white">Agendamentos</Text>
-          <Text className="text-[#71B9F4] font-semibold">Ver todos</Text>
+          <TouchableOpacity onPress={() => router.push(`/agendamentos-dia?date=${diaSelecionado}`)}>
+            <Text className="text-[#71B9F4] font-semibold">Ver todos</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Cards de Aulas */}
         <View className="mt-4">
-          <MeusAgendamentosCard titulo="Laboratório" tipo="Aula" horario="08:00 - 08:50" />
-          <MeusAgendamentosCard titulo="Matemática" tipo="Aula" horario="09:00 - 09:50" />
-          <MeusAgendamentosCard titulo="Física" tipo="Aula" horario="10:00 - 10:50" />
+          {meusAgendamentosDoDia.length === 0 ? (
+            <Text className="text-white/70">Nenhum agendamento para este dia.</Text>
+          ) : (
+            meusAgendamentosDoDia.map((a) => {
+              const start = (a.horario || "").slice(0, 5);
+              const end = start ? addMinutesHHmm(start, 50) : "";
+              const horario = start && end ? `${start} - ${end}` : start;
+              const titulo = `Laboratório ${a.numero_laboratorio}`;
+              const tipo = a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : (a.justificativa || "Reserva");
+              return (
+                <MeusAgendamentosCard
+                  key={a.id_Reserva}
+                  titulo={titulo}
+                  tipo={tipo}
+                  horario={horario}
+                />
+              );
+            })
+          )}
         </View>
       </ScrollView>
 
