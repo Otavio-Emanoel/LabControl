@@ -164,6 +164,39 @@ export async function vincularProfessorDisciplina(req: Request, res: Response) {
     }
 }
 
+export async function desvincularProfessorDisciplina(req: Request, res: Response) {
+    try {
+        // Apenas Coordenador ou Auxiliar Docente podem desvincular
+        const usuario = (req as any).user;
+        if (!usuario || (usuario.cargo !== 'Coordenador' && usuario.cargo !== 'Auxiliar_Docente')) {
+            return res.status(403).json({ error: 'Apenas Coordenador ou Auxiliar Docente pode desvincular professor da disciplina.' });
+        }
+
+        const { id_usuario, id_disciplina } = req.body || {};
+        if (!id_usuario || !id_disciplina) {
+            return res.status(400).json({ error: 'Informe o id do professor e o id da disciplina.' });
+        }
+
+        // Verifica se vínculo existe
+        const [vincRows] = await pool.query(
+            'SELECT id FROM professor_disciplina WHERE id_usuario = ? AND id_disciplina = ? LIMIT 1',
+            [id_usuario, id_disciplina]
+        );
+        if (!Array.isArray(vincRows) || vincRows.length === 0) {
+            return res.status(404).json({ error: 'Vínculo não encontrado.' });
+        }
+
+        await pool.query(
+            'DELETE FROM professor_disciplina WHERE id_usuario = ? AND id_disciplina = ?',
+            [id_usuario, id_disciplina]
+        );
+        return res.status(200).json({ message: 'Vínculo removido com sucesso!' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
 export async function listarCursos(_req: Request, res: Response) {
   try {
     const [rows] = await pool.query('SELECT id_curso, nome FROM curso');
@@ -193,5 +226,17 @@ export async function listarProfessoresDisciplinas(_req: Request, res: Response)
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao listar vínculos de professor com disciplina.' });
+  }
+}
+
+export async function listarProfessores(_req: Request, res: Response) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id_usuario, nome, email FROM usuarios WHERE cargo = \"Professor\"'
+    );
+    return res.json(rows);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao listar professores.';
+    return res.status(500).json({ error: message });
   }
 }

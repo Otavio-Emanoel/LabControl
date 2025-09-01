@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adicionarCurso, adicionarDisciplina, listarCursos, listarDisciplinas, listarProfessoresDisciplinas, login, register, vincularProfessorDisciplina } from '../controllers/user.controller';
+import { adicionarCurso, adicionarDisciplina, listarCursos, listarDisciplinas, listarProfessoresDisciplinas, login, register, vincularProfessorDisciplina, listarProfessores, desvincularProfessorDisciplina } from '../controllers/user.controller';
 import { authRequired, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -18,15 +18,20 @@ router.post('/disciplina', authRequired, requireRole(['Coordenador', 'Auxiliar_D
 // Somente Coordenador ou Auxiliar Docente podem vincular professor a disciplina
 router.post('/professor-disciplina', authRequired, requireRole(['Coordenador', 'Auxiliar_Docente']), vincularProfessorDisciplina);
 
-// Rotas para listar cursos
+// Listar cursos
 router.get('/cursos', listarCursos);
 
-// Rotas para listar disciplinas
+// Listar disciplinas
 router.get('/disciplinas', listarDisciplinas);
 
-// Rotas para listar professores e suas disciplinas
+// Listar professores e suas disciplinas
 router.get('/professores-disciplinas', listarProfessoresDisciplinas);
 
+// Listar professores (apenas cargo Professor)
+router.get('/professores', listarProfessores);
+
+// Desvincular professor de disciplina (Coord/Aux)
+router.post('/professor-disciplina/remove', authRequired, requireRole(['Coordenador', 'Auxiliar_Docente']), desvincularProfessorDisciplina);
 
 // Exemplo de rota protegida simples
 router.get('/me', authRequired, (req, res) => {

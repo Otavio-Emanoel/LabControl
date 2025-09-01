@@ -28,6 +28,10 @@
 - Lista todas as disciplinas
 - Não requer autenticação
 
+**GET /auth/professores**
+- Lista todos os usuários com cargo Professor
+- Não requer autenticação
+
 **GET /auth/professores-disciplinas**
 - Lista todos os vínculos de professor com disciplina
 - Não requer autenticação
@@ -44,6 +48,11 @@
 
 **POST /auth/professor-disciplina**
 - Vincula professor à disciplina (Coordenador ou Auxiliar_Docente)
+- Body: `{ id_usuario, id_disciplina }`
+- Necessário token de Coordenador ou Auxiliar_Docente
+
+**POST /auth/professor-disciplina/remove**
+- Desvincula (remove) o vínculo de um professor com uma disciplina (Coordenador ou Auxiliar_Docente)
 - Body: `{ id_usuario, id_disciplina }`
 - Necessário token de Coordenador ou Auxiliar_Docente
 
