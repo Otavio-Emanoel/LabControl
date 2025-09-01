@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
@@ -13,7 +13,7 @@ const SLOTS = [
   { key: '3', title: 'Terceira Aula', start: '10:00', end: '10:50', color: '#7F6BFF' },
   { key: '4', title: 'Quarta Aula',   start: '10:50', end: '11:40', color: '#25B97B' },
   { key: '5', title: 'Quinta Aula',   start: '11:40', end: '12:30', color: '#1FB38C' },
-  { key: '6', title: 'Sexta Aula',    start: '12:30', end: '13:30', color: '#F97316' },
+  { key: '6', title: 'Sexta Aula',    start: '12:30', end: '13:20', color: '#F97316' },
   { key: '7', title: 'Sétima Aula',   start: '13:30', end: '14:20', color: '#EF4444' },
   { key: '8', title: 'Oitava Aula',   start: '14:20', end: '15:10', color: '#E11D48' },
   { key: '9', title: 'Última Aula',   start: '15:10', end: '16:00', color: '#7C3AED' },
@@ -364,172 +364,166 @@ export default function AgendarLabPage() {
         onRequestClose={() => setShowForm(false)}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#111827', borderRadius: 16, overflow: 'hidden', maxHeight: '85%' }}>
-            <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-              <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Novo Agendamento</Text>
-              <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Horário: {slotToSchedule} | Dia: {date}</Text>
+          <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#111827', borderRadius: 18, overflow: 'hidden', height: '85%', borderWidth: 1, borderColor: '#374151' }}>
+            {/* Header do modal */}
+            <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F172A' }}>
+              <Text style={{ color: 'white', fontWeight: '800', fontSize: 16, flex: 1 }}>Novo Agendamento</Text>
+              <TouchableOpacity onPress={() => setShowForm(false)} style={{ padding: 6, borderRadius: 8, backgroundColor: '#111827' }}>
+                <Text style={{ color: '#9CA3AF', fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
-              {/* Chips de seleção */}
-              {(selectedProfessor || selectedDisciplina != null) && (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                  {selectedProfessor ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                      <Ionicons name="person-outline" size={14} color="#93C5FD" />
-                      <Text style={{ color: 'white', marginLeft: 6 }}>{selectedProfessorName}</Text>
-                      <TouchableOpacity onPress={() => { setSelectedProfessor(null); setSelectedDisciplina(null); }} style={{ marginLeft: 8 }}>
-                        <Ionicons name="close" size={14} color="#9CA3AF" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
-                  {selectedDisciplina != null ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                      <Ionicons name="book-outline" size={14} color="#93C5FD" />
-                      <Text style={{ color: 'white', marginLeft: 6 }}>{selectedDisciplinaLabel}</Text>
-                      <TouchableOpacity onPress={() => setSelectedDisciplina(null)} style={{ marginLeft: 8 }}>
-                        <Ionicons name="close" size={14} color="#9CA3AF" />
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
-                </View>
-              )}
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+                <Text style={{ color: '#9CA3AF' }}>Horário: <Text style={{ color: 'white' }}>{slotToSchedule}</Text>  |  Dia: <Text style={{ color: 'white' }}>{date}</Text></Text>
 
-              {isAdmin ? (
-                <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
-                  <TextInput
-                    placeholder="Buscar professor..."
-                    placeholderTextColor="#6B7280"
-                    value={profQuery}
-                    onChangeText={setProfQuery}
-                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
-                  />
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredProfessores.length} resultado(s)</Text>
-                    {profQuery.length > 0 && (
-                      <TouchableOpacity onPress={() => setProfQuery('')}>
-                        <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
-                      </TouchableOpacity>
+                {/* Chips de seleção */}
+                {(selectedProfessor || selectedDisciplina != null) && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                    {selectedProfessor ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                        <Text style={{ color: '#93C5FD' }}>👤</Text>
+                        <Text style={{ color: 'white', marginLeft: 6 }}>{selectedProfessorName}</Text>
+                        <TouchableOpacity onPress={() => { setSelectedProfessor(null); setSelectedDisciplina(null); }} style={{ marginLeft: 8 }}>
+                          <Text style={{ color: '#9CA3AF' }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                    {selectedDisciplina != null ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                        <Text style={{ color: '#93C5FD' }}>📘</Text>
+                        <Text style={{ color: 'white', marginLeft: 6 }}>{selectedDisciplinaLabel}</Text>
+                        <TouchableOpacity onPress={() => setSelectedDisciplina(null)} style={{ marginLeft: 8 }}>
+                          <Text style={{ color: '#9CA3AF' }}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
+
+                {isAdmin ? (
+                  <View style={{ marginTop: 16 }}>
+                    {/* Professor */}
+                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
+                    <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                      <TextInput
+                        placeholder="Buscar professor..."
+                        placeholderTextColor="#6B7280"
+                        value={profQuery}
+                        onChangeText={setProfQuery}
+                        style={{ color: 'white', padding: 12 }}
+                      />
+                      <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
+                        <ScrollView nestedScrollEnabled>
+                          {filteredProfessores.length === 0 ? (
+                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>
+                          ) : (
+                            filteredProfessores.map((item) => (
+                              <TouchableOpacity
+                                key={String(item.id_usuario)}
+                                onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
+                                style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
+                              >
+                                <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </ScrollView>
+                      </View>
+                    </View>
+
+                    {/* Disciplina */}
+                    <Text style={{ color: '#E5E7EB', marginTop: 16, marginBottom: 6 }}>Disciplina</Text>
+                    {!selectedProfessor ? (
+                      <Text style={{ color: '#9CA3AF' }}>Selecione um professor para listar as disciplinas.</Text>
+                    ) : (
+                      <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                        <TextInput
+                          placeholder="Buscar disciplina ou curso..."
+                          placeholderTextColor="#6B7280"
+                          value={discQuery}
+                          onChangeText={setDiscQuery}
+                          style={{ color: 'white', padding: 12 }}
+                        />
+                        <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
+                          <ScrollView nestedScrollEnabled>
+                            {filteredDisciplinas.length === 0 ? (
+                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
+                            ) : (
+                              filteredDisciplinas.map((item) => (
+                                <TouchableOpacity
+                                  key={`${item.id_usuario}-${item.id_disciplina}`}
+                                  onPress={() => setSelectedDisciplina(item.id_disciplina)}
+                                  style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
+                                >
+                                  <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                                </TouchableOpacity>
+                              ))
+                            )}
+                          </ScrollView>
+                        </View>
+                      </View>
                     )}
                   </View>
-                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-                    <FlatList
-                      data={filteredProfessores}
-                      keyExtractor={(item) => String(item.id_usuario)}
-                      style={{ height: 220 }}
-                      nestedScrollEnabled
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
-                          style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
-                        >
-                          <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
-                        </TouchableOpacity>
-                      )}
-                      ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>}
-                    />
-                  </View>
-
-                  <Text style={{ color: '#E5E7EB', marginTop: 16, marginBottom: 6 }}>Disciplina</Text>
-                  {!selectedProfessor ? (
-                    <Text style={{ color: '#9CA3AF' }}>Selecione um professor para listar as disciplinas.</Text>
-                  ) : (
-                    <>
+                ) : (
+                  // Professor
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
+                    <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
                       <TextInput
                         placeholder="Buscar disciplina ou curso..."
                         placeholderTextColor="#6B7280"
                         value={discQuery}
                         onChangeText={setDiscQuery}
-                        style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
+                        style={{ color: 'white', padding: 12 }}
                       />
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredDisciplinas.length} resultado(s)</Text>
-                        {discQuery.length > 0 && (
-                          <TouchableOpacity onPress={() => setDiscQuery('')}>
-                            <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-                        <FlatList
-                          data={filteredDisciplinas}
-                          keyExtractor={(item) => `${item.id_usuario}-${item.id_disciplina}`}
-                          style={{ height: 220 }}
-                          nestedScrollEnabled
-                          renderItem={({ item }) => (
-                            <TouchableOpacity
-                              onPress={() => setSelectedDisciplina(item.id_disciplina)}
-                              style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
-                            >
-                              <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
-                            </TouchableOpacity>
+                      <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
+                        <ScrollView nestedScrollEnabled>
+                          {filteredDisciplinas.length === 0 ? (
+                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>
+                          ) : (
+                            filteredDisciplinas.map((item) => (
+                              <TouchableOpacity
+                                key={`${item.id_usuario}-${item.id_disciplina}`}
+                                onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
+                                style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
+                              >
+                                <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                              </TouchableOpacity>
+                            ))
                           )}
-                          ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>}
-                        />
+                        </ScrollView>
                       </View>
-                    </>
-                  )}
-                </View>
-              ) : (
+                    </View>
+                  </View>
+                )}
+
+                {/* Justificativa */}
                 <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
+                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa</Text>
                   <TextInput
-                    placeholder="Buscar disciplina ou curso..."
+                    placeholder="Motivo do uso do laboratório..."
                     placeholderTextColor="#6B7280"
-                    value={discQuery}
-                    onChangeText={setDiscQuery}
-                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, marginBottom: 8 }}
+                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, minHeight: 80 }}
+                    value={justificativa}
+                    onChangeText={setJustificativa}
+                    multiline
                   />
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{filteredDisciplinas.length} resultado(s)</Text>
-                    {discQuery.length > 0 && (
-                      <TouchableOpacity onPress={() => setDiscQuery('')}>
-                        <Text style={{ color: '#93C5FD', fontSize: 12 }}>Limpar busca</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                  <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-                    <FlatList
-                      data={filteredDisciplinas}
-                      keyExtractor={(item) => `${item.id_usuario}-${item.id_disciplina}`}
-                      style={{ height: 220 }}
-                      nestedScrollEnabled
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
-                          style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
-                        >
-                          <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
-                        </TouchableOpacity>
-                      )}
-                      ListEmptyComponent={<Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>}
-                    />
-                  </View>
                 </View>
-              )}
 
-              <View style={{ marginTop: 12 }}>
-                <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa</Text>
-                <TextInput
-                  placeholder="Motivo do uso do laboratório..."
-                  placeholderTextColor="#6B7280"
-                  style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12 }}
-                  value={justificativa}
-                  onChangeText={setJustificativa}
-                  multiline
-                />
-              </View>
+                {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
 
-              {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
-
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>
-                <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#374151' }}>
-                  <Text style={{ color: 'white' }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#3B96E2' }}>
-                  <Text style={{ color: 'white', fontWeight: '600' }}>Agendar</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+                {/* Ações */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
+                  <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#374151' }}>
+                    <Text style={{ color: 'white' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#3B96E2' }}>
+                    <Text style={{ color: 'white', fontWeight: '600' }}>Agendar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </KeyboardAvoidingView>
           </View>
         </View>
       </Modal>
