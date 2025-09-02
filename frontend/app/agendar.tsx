@@ -5,6 +5,7 @@ import { Link, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Nav from '@/components/nav';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Slots fixos
 const SLOTS = [
@@ -335,149 +336,185 @@ export default function AgendarLabPage() {
     }
   };
 
+  // Insets de área segura (topo)
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScrollView className="flex-1 bg-black">
-      {/* Voltar */}
-      <Link href="/agendamento" className='flex-1 flex-row items-center h-full p-4 z-10'>
-        <Ionicons name="arrow-back" size={18} color="white" />
-        <Text className='color-white text-lg font-poppins ml-2'>Voltar</Text>
-      </Link>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black', paddingTop: Math.max(insets.top, 12) }}>
+      <ScrollView className="flex-1 bg-black" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 96 }}>
+        {/* Voltar */}
+        <Link href="/agendamento" className='flex-1 flex-row items-center h-full p-4 z-10'>
+          <Ionicons name="arrow-back" size={18} color="white" />
+          <Text className='color-white text-lg font-poppins ml-2'>Voltar</Text>
+        </Link>
 
-      {/* Header do Lab */}
-      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-        <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20 }}>Laboratório {lab?.numero ?? labId}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 4, borderColor: '#3B96E2' }} />
-          <Text style={{ color: '#9CA3AF', marginLeft: 10 }}>{usagePercent}% em uso</Text>
+        {/* Header do Lab */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20 }}>Laboratório {lab?.numero ?? labId}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 4, borderColor: '#3B96E2' }} />
+            <Text style={{ color: '#9CA3AF', marginLeft: 10 }}>{usagePercent}% em uso</Text>
+          </View>
+          <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Dia {date}</Text>
+          {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
         </View>
-        <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Dia {date}</Text>
-        {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
-      </View>
 
-      {/* Lista de slots */}
-      <View style={{ paddingHorizontal: 16, gap: 10 }}>
-        {SLOTS.map((s) => {
-          const reserved = reservedTimes.has(s.start);
-          const isFixed = fixedTimes.includes(s.start);
-          return (
-            <View key={s.key} style={{ backgroundColor: '#0F172A', borderRadius: 16, overflow: 'hidden' }}>
-              <View style={{ height: 8, backgroundColor: s.color, opacity: 0.9 }} />
-              <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: 'white', fontWeight: '600' }}>{s.title}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                    <Ionicons name="time-outline" size={14} color="#9CA3AF" />
-                    <Text style={{ color: '#9CA3AF', marginLeft: 6 }}>{s.start} - {s.end}</Text>
+        {/* Lista de slots */}
+        <View style={{ paddingHorizontal: 16, gap: 10 }}>
+          {SLOTS.map((s) => {
+            const reserved = reservedTimes.has(s.start);
+            const isFixed = fixedTimes.includes(s.start);
+            return (
+              <View key={s.key} style={{ backgroundColor: '#0F172A', borderRadius: 16, overflow: 'hidden' }}>
+                <View style={{ height: 8, backgroundColor: s.color, opacity: 0.9 }} />
+                <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: 'white', fontWeight: '600' }}>{s.title}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                      <Ionicons name="time-outline" size={14} color="#9CA3AF" />
+                      <Text style={{ color: '#9CA3AF', marginLeft: 6 }}>{s.start} - {s.end}</Text>
+                    </View>
                   </View>
-                </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ backgroundColor: reserved ? '#1F2937' : '#16A34A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? (isFixed ? 'Fixo' : 'Em uso') : 'Livre'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ backgroundColor: reserved ? '#1F2937' : '#16A34A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                      <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? (isFixed ? 'Fixo' : 'Em uso') : 'Livre'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      disabled={reserved || savingSlot === s.start}
+                      onPress={() => !reserved && openForm(s.start)}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: reserved ? '#374151' : '#3B96E2',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: reserved || savingSlot === s.start ? 0.6 : 1,
+                      }}
+                    >
+                      <Ionicons name={reserved ? 'lock-closed' : 'add'} size={18} color={'white'} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    disabled={reserved || savingSlot === s.start}
-                    onPress={() => !reserved && openForm(s.start)}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 16,
-                      backgroundColor: reserved ? '#374151' : '#3B96E2',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: reserved || savingSlot === s.start ? 0.6 : 1,
-                    }}
-                  >
-                    <Ionicons name={reserved ? 'lock-closed' : 'add'} size={18} color={'white'} />
-                  </TouchableOpacity>
                 </View>
               </View>
-            </View>
-          );
-        })}
-      </View>
+            );
+          })}
+        </View>
 
-      {/* Formulário de agendamento */}
-      <Modal
-        visible={showForm}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowForm(false)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#111827', borderRadius: 18, overflow: 'hidden', height: '85%', borderWidth: 1, borderColor: '#374151' }}>
-            {/* Header do modal */}
-            <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F172A' }}>
-              <Text style={{ color: 'white', fontWeight: '800', fontSize: 16, flex: 1 }}>Novo Agendamento</Text>
-              <TouchableOpacity onPress={() => setShowForm(false)} style={{ padding: 6, borderRadius: 8, backgroundColor: '#111827' }}>
-                <Text style={{ color: '#9CA3AF', fontWeight: '700' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Formulário de agendamento */}
+        <Modal
+          visible={showForm}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowForm(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#111827', borderRadius: 18, overflow: 'hidden', height: '85%', borderWidth: 1, borderColor: '#374151' }}>
+              {/* Header do modal */}
+              <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1F2937', flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F172A' }}>
+                <Text style={{ color: 'white', fontWeight: '800', fontSize: 16, flex: 1 }}>Novo Agendamento</Text>
+                <TouchableOpacity onPress={() => setShowForm(false)} style={{ padding: 6, borderRadius: 8, backgroundColor: '#111827' }}>
+                  <Text style={{ color: '#9CA3AF', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
 
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-              <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-                <Text style={{ color: '#9CA3AF' }}>Horário: <Text style={{ color: 'white' }}>{slotToSchedule}</Text>  |  Dia: <Text style={{ color: 'white' }}>{date}</Text></Text>
+              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+                  <Text style={{ color: '#9CA3AF' }}>Horário: <Text style={{ color: 'white' }}>{slotToSchedule}</Text>  |  Dia: <Text style={{ color: 'white' }}>{date}</Text></Text>
 
-                {/* Chips de seleção */}
-                {(selectedProfessor || selectedDisciplina != null) && (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                    {selectedProfessor ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                        <Text style={{ color: '#93C5FD' }}>👤</Text>
-                        <Text style={{ color: 'white', marginLeft: 6 }}>{selectedProfessorName}</Text>
-                        <TouchableOpacity onPress={() => { setSelectedProfessor(null); setSelectedDisciplina(null); }} style={{ marginLeft: 8 }}>
-                          <Text style={{ color: '#9CA3AF' }}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : null}
-                    {selectedDisciplina != null ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                        <Text style={{ color: '#93C5FD' }}>📘</Text>
-                        <Text style={{ color: 'white', marginLeft: 6 }}>{selectedDisciplinaLabel}</Text>
-                        <TouchableOpacity onPress={() => setSelectedDisciplina(null)} style={{ marginLeft: 8 }}>
-                          <Text style={{ color: '#9CA3AF' }}>✕</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : null}
-                  </View>
-                )}
-
-                {isAdmin ? (
-                  <View style={{ marginTop: 16 }}>
-                    {/* Professor */}
-                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
-                    <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-                      <TextInput
-                        placeholder="Buscar professor..."
-                        placeholderTextColor="#6B7280"
-                        value={profQuery}
-                        onChangeText={setProfQuery}
-                        style={{ color: 'white', padding: 12 }}
-                      />
-                      <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
-                        <ScrollView nestedScrollEnabled>
-                          {filteredProfessores.length === 0 ? (
-                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>
-                          ) : (
-                            filteredProfessores.map((item) => (
-                              <TouchableOpacity
-                                key={String(item.id_usuario)}
-                                onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
-                                style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
-                              >
-                                <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
-                              </TouchableOpacity>
-                            ))
-                          )}
-                        </ScrollView>
-                      </View>
+                  {/* Chips de seleção */}
+                  {(selectedProfessor || selectedDisciplina != null) && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                      {selectedProfessor ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                          <Text style={{ color: '#93C5FD' }}>👤</Text>
+                          <Text style={{ color: 'white', marginLeft: 6 }}>{selectedProfessorName}</Text>
+                          <TouchableOpacity onPress={() => { setSelectedProfessor(null); setSelectedDisciplina(null); }} style={{ marginLeft: 8 }}>
+                            <Text style={{ color: '#9CA3AF' }}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
+                      {selectedDisciplina != null ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2A44', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                          <Text style={{ color: '#93C5FD' }}>📘</Text>
+                          <Text style={{ color: 'white', marginLeft: 6 }}>{selectedDisciplinaLabel}</Text>
+                          <TouchableOpacity onPress={() => setSelectedDisciplina(null)} style={{ marginLeft: 8 }}>
+                            <Text style={{ color: '#9CA3AF' }}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : null}
                     </View>
+                  )}
 
-                    {/* Disciplina */}
-                    <Text style={{ color: '#E5E7EB', marginTop: 16, marginBottom: 6 }}>Disciplina</Text>
-                    {!selectedProfessor ? (
-                      <Text style={{ color: '#9CA3AF' }}>Selecione um professor para listar as disciplinas.</Text>
-                    ) : (
+                  {isAdmin ? (
+                    <View style={{ marginTop: 16 }}>
+                      {/* Professor */}
+                      <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Professor</Text>
+                      <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                        <TextInput
+                          placeholder="Buscar professor..."
+                          placeholderTextColor="#6B7280"
+                          value={profQuery}
+                          onChangeText={setProfQuery}
+                          style={{ color: 'white', padding: 12 }}
+                        />
+                        <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
+                          <ScrollView nestedScrollEnabled>
+                            {filteredProfessores.length === 0 ? (
+                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>
+                            ) : (
+                              filteredProfessores.map((item) => (
+                                <TouchableOpacity
+                                  key={String(item.id_usuario)}
+                                  onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
+                                  style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
+                                >
+                                  <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
+                                </TouchableOpacity>
+                              ))
+                            )}
+                          </ScrollView>
+                        </View>
+                      </View>
+
+                      {/* Disciplina */}
+                      <Text style={{ color: '#E5E7EB', marginTop: 16, marginBottom: 6 }}>Disciplina</Text>
+                      {!selectedProfessor ? (
+                        <Text style={{ color: '#9CA3AF' }}>Selecione um professor para listar as disciplinas.</Text>
+                      ) : (
+                        <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
+                          <TextInput
+                            placeholder="Buscar disciplina ou curso..."
+                            placeholderTextColor="#6B7280"
+                            value={discQuery}
+                            onChangeText={setDiscQuery}
+                            style={{ color: 'white', padding: 12 }}
+                          />
+                          <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
+                            <ScrollView nestedScrollEnabled>
+                              {filteredDisciplinas.length === 0 ? (
+                                <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
+                              ) : (
+                                filteredDisciplinas.map((item) => (
+                                  <TouchableOpacity
+                                    key={`${item.id_usuario}-${item.id_disciplina}`}
+                                    onPress={() => setSelectedDisciplina(item.id_disciplina)}
+                                    style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
+                                  >
+                                    <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                                  </TouchableOpacity>
+                                ))
+                              )}
+                            </ScrollView>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    // Professor
+                    <View style={{ marginTop: 16 }}>
+                      <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
                       <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
                         <TextInput
                           placeholder="Buscar disciplina ou curso..."
@@ -489,12 +526,12 @@ export default function AgendarLabPage() {
                         <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
                           <ScrollView nestedScrollEnabled>
                             {filteredDisciplinas.length === 0 ? (
-                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
+                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>
                             ) : (
                               filteredDisciplinas.map((item) => (
                                 <TouchableOpacity
                                   key={`${item.id_usuario}-${item.id_disciplina}`}
-                                  onPress={() => setSelectedDisciplina(item.id_disciplina)}
+                                  onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
                                   style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
                                 >
                                   <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
@@ -504,69 +541,39 @@ export default function AgendarLabPage() {
                           </ScrollView>
                         </View>
                       </View>
-                    )}
-                  </View>
-                ) : (
-                  // Professor
-                  <View style={{ marginTop: 16 }}>
-                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Sua disciplina</Text>
-                    <View style={{ backgroundColor: '#0F172A', borderRadius: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-                      <TextInput
-                        placeholder="Buscar disciplina ou curso..."
-                        placeholderTextColor="#6B7280"
-                        value={discQuery}
-                        onChangeText={setDiscQuery}
-                        style={{ color: 'white', padding: 12 }}
-                      />
-                      <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
-                        <ScrollView nestedScrollEnabled>
-                          {filteredDisciplinas.length === 0 ? (
-                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>
-                          ) : (
-                            filteredDisciplinas.map((item) => (
-                              <TouchableOpacity
-                                key={`${item.id_usuario}-${item.id_disciplina}`}
-                                onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
-                                style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
-                              >
-                                <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
-                              </TouchableOpacity>
-                            ))
-                          )}
-                        </ScrollView>
-                      </View>
                     </View>
+                  )}
+
+                  {/* Justificativa (opcional) */}
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa (opcional)</Text>
+                    <TextInput
+                      placeholder="Ex.: Aula prática, reposição, etc."
+                      placeholderTextColor="#6B7280"
+                      value={justificativa}
+                      onChangeText={setJustificativa}
+                      style={{ color: 'white', backgroundColor: '#0F172A', borderWidth: 1, borderColor: '#1F2937', borderRadius: 12, padding: 12 }}
+                    />
                   </View>
-                )}
 
-                {/* Justificativa (opcional) */}
-                <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa (opcional)</Text>
-                  <TextInput
-                    placeholder="Ex.: Aula prática, reposição, etc."
-                    placeholderTextColor="#6B7280"
-                    value={justificativa}
-                    onChangeText={setJustificativa}
-                    style={{ color: 'white', backgroundColor: '#0F172A', borderWidth: 1, borderColor: '#1F2937', borderRadius: 12, padding: 12 }}
-                  />
-                </View>
-
-                {/* Ações */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
-                  <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
-                    <Text style={{ color: 'white' }}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
-                    <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </KeyboardAvoidingView>
+                  {/* Ações */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+                    <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
+                      <Text style={{ color: 'white' }}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
+                      <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </KeyboardAvoidingView>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </ScrollView>
 
+      {/* Nav fixa */}
       <Nav active="agendamento" />
-    </ScrollView>
+    </SafeAreaView>
   );
 }
