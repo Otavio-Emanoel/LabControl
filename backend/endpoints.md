@@ -99,6 +99,37 @@
 - Remove agendamento
 - Necessário token
 
+**POST /agendamentos/fixo/:id**
+- Transforma um agendamento existente em horário fixo (mesmo horário, dia da semana e laboratório)
+- Necessário token de Coordenador ou Auxiliar_Docente
+- Regras:
+  - Usa o `dia` da reserva para calcular o `dia_semana` (domingo..sábado)
+  - Impede duplicidade por (fk_lab, dia_semana, horario)
+  - Retorna 404 se o agendamento não existir e 409 se já houver horário fixo igual
+
+---
+
+### Horários fixos
+
+**GET /horarios-fixos/**
+- Lista todos os horários fixos
+- Necessário token
+
+**POST /horarios-fixos/**
+- Cria um horário fixo manualmente
+- Necessário token de Coordenador ou Auxiliar_Docente
+- Body: `{ dia_semana, horario, fk_lab, fk_usuario }`
+- Regras:
+  - `dia_semana`: domingo, segunda, terca, quarta, quinta, sexta, sabado
+  - `horario`: um dos horários permitidos (mesma lista dos agendamentos)
+  - `fk_usuario` deve ser um Professor
+  - Impede duplicidade por (fk_lab, dia_semana, horario)
+
+**DELETE /horarios-fixos/:id**
+- Remove um horário fixo por ID
+- Necessário token de Coordenador ou Auxiliar_Docente
+- Retorna 404 se não existir
+
 ---
 
 ### Outros

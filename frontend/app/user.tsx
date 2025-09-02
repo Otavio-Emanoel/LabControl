@@ -190,6 +190,19 @@ export default function ProfileScreen() {
                 <Ionicons name="chevron-forward" size={20} color="#6B7280" />
               </TouchableOpacity>
             )}
+
+            {(isAux || isCoord) && (
+              <TouchableOpacity
+                onPress={() => router.push('/tornar-fixo' as any)}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="infinite-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Tornar agendamento fixo</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
           </View>
         )}
 

@@ -7,7 +7,8 @@ import {
   criarAgendamento,
   removerAgendamento,
   editarAgendamento,
-  editarJustificativa
+  editarJustificativa,
+  transformarAgendamentoEmFixo
 } from '../controllers/agendamentos.controller';
 
 const router = Router();
@@ -45,6 +46,13 @@ router.post(
   authRequired,
   requireRole(['Coordenador', 'Auxiliar_Docente', 'Professor']),
   removerAgendamento
+);
+
+router.post(
+  '/fixo/:id',
+  authRequired,
+  requireRole(['Coordenador', 'Auxiliar_Docente']),
+  transformarAgendamentoEmFixo
 );
 
 export default router;

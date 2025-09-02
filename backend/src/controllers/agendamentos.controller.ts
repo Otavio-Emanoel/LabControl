@@ -168,6 +168,36 @@ async function atualizarJustificativa(id: number, justificativa: string) {
   return result;
 }
 
+// cria horário fixo a partir de um agendamento existente (função interna)
+async function criarHorarioFixoFromReserva(idReserva: number) {
+  const [rows]: any = await pool.query(
+    'SELECT id_Reserva, horario, dia, fk_laboratorio AS fk_lab, fk_usuario FROM reserva WHERE id_Reserva = ? LIMIT 1',
+    [idReserva]
+  );
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('Agendamento não encontrado');
+  const r = rows[0] as { horario: string; dia: string; fk_lab: number; fk_usuario: number };
+
+  // dia_semana: pt-BR sem acentos
+  const wdIdx = new Date(r.dia).getDay(); // 0..6
+  const dias = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+  const dia_semana = dias[wdIdx] || 'segunda';
+
+  // checa duplicidade em horarios_fixos
+  const [dup]: any = await pool.query(
+    'SELECT id_horario_fixo FROM horarios_fixos WHERE fk_lab = ? AND dia_semana = ? AND horario = ? LIMIT 1',
+    [r.fk_lab, dia_semana, r.horario]
+  );
+  if (Array.isArray(dup) && dup.length > 0) {
+    throw new Error('Já existe horário fixo para este laboratório, dia da semana e horário.');
+  }
+
+  const [ins]: any = await pool.query(
+    'INSERT INTO horarios_fixos (dia_semana, horario, fk_usuario, fk_lab) VALUES (?, ?, ?, ?)',
+    [dia_semana, r.horario, r.fk_usuario, r.fk_lab]
+  );
+  return { id_horario_fixo: ins?.insertId, dia_semana, horario: r.horario, fk_usuario: r.fk_usuario, fk_lab: r.fk_lab };
+}
+
 /* ===========================
    Handlers HTTP (exportados)
    =========================== */
@@ -311,5 +341,24 @@ export const editarJustificativa = async (req: Request, res: Response) => {
     const m = msg(error);
     if (m.includes('não encontrado')) return res.status(404).json({ error: m });
     res.status(500).json({ error: 'Erro ao atualizar justificativa', details: m });
+  }
+};
+
+export const transformarAgendamentoEmFixo = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  try {
+    const user = (req as any).user as { cargo: string } | undefined;
+    if (!user) return res.status(401).json({ error: 'Não autenticado' });
+    if (!['Coordenador', 'Auxiliar_Docente'].includes(user.cargo)) {
+      return res.status(403).json({ error: 'Apenas Coordenador ou Auxiliar_Docente podem criar horário fixo.' });
+    }
+
+    const data = await criarHorarioFixoFromReserva(id);
+    res.status(201).json(data);
+  } catch (error) {
+    const m = msg(error);
+    if (m.includes('Agendamento não encontrado')) return res.status(404).json({ error: m });
+    if (m.includes('Já existe horário fixo')) return res.status(409).json({ error: m });
+    res.status(500).json({ error: 'Erro ao transformar em horário fixo', details: m });
   }
 };

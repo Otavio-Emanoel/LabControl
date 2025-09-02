@@ -38,6 +38,9 @@ interface Reserva {
   nome_usuario: string;
   id_Laboratorio: number;
   numero_laboratorio: string;
+  // campos adicionais quando for horário fixo
+  isFixo?: boolean;
+  id_fixo?: number;
 }
 
 function toYMD(dia: unknown): string {
@@ -79,6 +82,18 @@ function getInitials(name?: string) {
   return (first + last).toUpperCase();
 }
 
+// Converte YYYY-MM-DD para rótulo de dia da semana esperado pelo backend de horários fixos
+function ymdToDiaSemana(ymd: string) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    const idx = d.getDay(); // 0..6 (0=domingo)
+    const dias = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'] as const;
+    return dias[idx];
+  } catch {
+    return '';
+  }
+}
+
 export default function AgendamentosDiaPage() {
   const { date } = useLocalSearchParams<{ date?: string }>();
   const ymd = (date as string) || new Date().toISOString().slice(0, 10);
@@ -110,13 +125,46 @@ export default function AgendamentosDiaPage() {
     try {
       setLoading(true);
       setErrorMsg(null);
-      const [labsRes, reservasRes] = await Promise.all([
+      const ds = ymdToDiaSemana(ymd);
+      const [labsRes, reservasRes, fixosRes] = await Promise.all([
         api.get<Lab[]>(`/labs/all`),
         api.get<Reserva[]>(`/agendamentos/all`),
+        api.get<any[]>(`/horarios-fixos/`),
       ]);
       setLabs(labsRes.data as any);
-      const all = reservasRes.data as any as Reserva[];
-      setReservas(all.filter((r) => toYMD(r.dia) === ymd));
+      const allRes = reservasRes.data as any as Reserva[];
+      const doDia = allRes.filter((r) => toYMD(r.dia) === ymd);
+
+      // mapeia fixos do mesmo dia da semana para o formato visual de reserva
+      let fixosMapped: Reserva[] = [];
+      if (Array.isArray(fixosRes.data) && ds) {
+        fixosMapped = (fixosRes.data as any[])
+          .filter((f) => String(f.dia_semana).toLowerCase() === ds)
+          .map((f) => {
+            const numeroLab = f.nome_laboratorio ?? f.numero_laboratorio ?? f.numero ?? '';
+            return {
+              id_Reserva: -100000 - Number(f.id_horario_fixo || 0),
+              id_fixo: Number(f.id_horario_fixo || 0),
+              isFixo: true,
+              horario: String(f.horario),
+              dia: ymd,
+              justificativa: null,
+              fk_aulas: null,
+              nome_disciplina: null,
+              id_usuario: Number(f.id_usuario),
+              nome_usuario: String(f.nome_usuario || ''),
+              id_Laboratorio: Number(f.id_Laboratorio),
+              numero_laboratorio: String(numeroLab),
+            } as Reserva;
+          });
+      }
+
+      // combina: primeiro reservas do dia (prioridade), depois preenche espaços com fixos
+      // construiremos um mapa para evitar duplicidade SLOT/LAB
+      const ocupados = new Set(doDia.map((r) => `${r.id_Laboratorio}-${timeToHHmm(r.horario)}`));
+      const fixosSemConflito = fixosMapped.filter((f) => !ocupados.has(`${f.id_Laboratorio}-${timeToHHmm(f.horario)}`));
+
+      setReservas([...doDia, ...fixosSemConflito]);
     } catch (e: any) {
       setErrorMsg(e?.message || 'Erro ao carregar agendamentos.');
     } finally {
@@ -231,6 +279,41 @@ export default function AgendamentosDiaPage() {
 
   const confirmarRemocao = useCallback(() => {
     if (!selectedRes) return;
+    // se for fixo
+    if (selectedRes.isFixo) {
+      if (!isAuxCoord) {
+        Alert.alert('Ação não permitida', 'Apenas Coordenador ou Auxiliar Docente podem remover horários fixos.');
+        return;
+      }
+      Alert.alert(
+        'Remover horário fixo',
+        'Tem certeza que deseja remover este horário fixo?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Remover',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setDeleting(true);
+                const idFixo = selectedRes.id_fixo;
+                if (!idFixo) throw new Error('ID do horário fixo não encontrado.');
+                await api.delete(`/horarios-fixos/${idFixo}`);
+                setResModalVisible(false);
+                setSelectedRes(null);
+                await load();
+              } catch (e: any) {
+                Alert.alert('Erro', e?.response?.data?.error || 'Falha ao remover horário fixo');
+              } finally {
+                setDeleting(false);
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+    // reserva normal
     Alert.alert(
       'Remover agendamento',
       'Tem certeza que deseja remover este agendamento?',
@@ -255,10 +338,14 @@ export default function AgendamentosDiaPage() {
         },
       ]
     );
-  }, [selectedRes, load]);
+  }, [selectedRes, load, isAuxCoord]);
 
   const salvarJustificativa = useCallback(async () => {
     if (!selectedRes) return;
+    if (selectedRes.isFixo) {
+      Alert.alert('Ação não disponível', 'Horário fixo não possui justificativa para editar.');
+      return;
+    }
     try {
       setSaving(true);
       await api.post(`/agendamentos/justificativa/${selectedRes.id_Reserva}`, { justificativa: editJustText });
@@ -346,9 +433,14 @@ export default function AgendamentosDiaPage() {
                                   <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
                                 </View>
                                 <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                                {r.isFixo ? (
+                                  <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
+                                    <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
+                                  </View>
+                                ) : null}
                               </View>
                               <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
-                                {r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento'}
+                                {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -410,28 +502,31 @@ export default function AgendamentosDiaPage() {
             {selectedRes ? (
               <View style={{ marginTop: 10 }}>
                 <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Professor: <Text style={{ color: 'white' }}>{selectedRes.nome_usuario}</Text></Text>
+                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Tipo: <Text style={{ color: 'white' }}>{selectedRes.isFixo ? 'Horário fixo' : 'Reserva'}</Text></Text>
                 <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Disciplina: <Text style={{ color: 'white' }}>{selectedRes.nome_disciplina || '-'}</Text></Text>
                 <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Laboratório: <Text style={{ color: 'white' }}>Lab {selectedRes.numero_laboratorio}</Text></Text>
                 <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Dia: <Text style={{ color: 'white' }}>{toYMD(selectedRes.dia)}</Text></Text>
                 <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Horário: <Text style={{ color: 'white' }}>{timeToHHmm(selectedRes.horario)}</Text></Text>
 
-                <View style={{ marginTop: 10 }}>
-                  <Text style={{ color: '#9CA3AF' }}>Justificativa:</Text>
-                  {editJust ? (
-                    <TextInput
-                      value={editJustText}
-                      onChangeText={setEditJustText}
-                      placeholder="Justificativa"
-                      placeholderTextColor="#6B7280"
-                      multiline
-                      style={{ marginTop: 6, minHeight: 80, color: 'white', backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}
-                    />
-                  ) : (
-                    <View style={{ marginTop: 6, backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
-                      <Text style={{ color: 'white' }}>{selectedRes.justificativa || '-'}</Text>
-                    </View>
-                  )}
-                </View>
+                {!selectedRes.isFixo && (
+                  <View style={{ marginTop: 10 }}>
+                    <Text style={{ color: '#9CA3AF' }}>Justificativa:</Text>
+                    {editJust ? (
+                      <TextInput
+                        value={editJustText}
+                        onChangeText={setEditJustText}
+                        placeholder="Justificativa"
+                        placeholderTextColor="#6B7280"
+                        multiline
+                        style={{ marginTop: 6, minHeight: 80, color: 'white', backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}
+                      />
+                    ) : (
+                      <View style={{ marginTop: 6, backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
+                        <Text style={{ color: 'white' }}>{selectedRes.justificativa || '-'}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             ) : null}
 
@@ -440,7 +535,13 @@ export default function AgendamentosDiaPage() {
                 <Text style={{ color: 'white' }}>Fechar</Text>
               </TouchableOpacity>
 
-              {isAuxCoord ? (
+              {isAuxCoord && selectedRes?.isFixo ? (
+                <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
+                  <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover fixo'}</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {isAuxCoord && selectedRes && !selectedRes.isFixo ? (
                 editJust ? (
                   <TouchableOpacity onPress={salvarJustificativa} disabled={saving} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: saving ? '#274b6b' : '#3B96E2', opacity: saving ? 0.8 : 1 }}>
                     <Text style={{ color: 'white', fontWeight: '700' }}>{saving ? 'Salvando...' : 'Salvar'}</Text>
@@ -499,9 +600,14 @@ export default function AgendamentosDiaPage() {
                             <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
                           </View>
                           <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                          {r.isFixo ? (
+                            <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
+                              <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
+                            </View>
+                          ) : null}
                         </View>
                         <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
-                          {r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento'}
+                          {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
                         </Text>
                       </View>
                     ) : (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getApiBaseUrl } from '@/lib/api';
@@ -26,6 +26,9 @@ interface Reserva {
   nome_usuario: string;
   id_Laboratorio: number;
   numero_laboratorio: string;
+  // extras quando for horário fixo mapeado
+  isFixo?: boolean;
+  id_fixo?: number;
 }
 
 function formatYMD(d: Date) {
@@ -57,11 +60,40 @@ function addMinutesHHmm(hhmm: string, minutes: number) {
   return `${hh}:${mm}`;
 }
 
+function timeToHHmm(v: unknown): string {
+  if (typeof v === 'string') {
+    const m = v.match(/^(\d{2}:\d{2})/);
+    return m ? m[1] : '';
+  }
+  if (v && typeof v === 'object' && typeof (v as any).getHours === 'function') {
+    const dt = v as Date;
+    const hh = String(dt.getHours()).padStart(2, '0');
+    const mm = String(dt.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  }
+  return '';
+}
+
+function ymdToDiaSemana(ymd: string) {
+  try {
+    const d = new Date(`${ymd}T00:00:00`);
+    const idx = d.getDay(); // 0..6
+    const dias = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'] as const;
+    return dias[idx];
+  } catch {
+    return '';
+  }
+}
+
 export default function AgendamentoPage() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState<'professores' | 'organizacao'>('professores');
   const [labs, setLabs] = useState<Lab[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [fixos, setFixos] = useState<any[]>([]);
+  const [cargo, setCargo] = useState<string>('');
+  const isAuxCoord = cargo === 'Coordenador' || cargo === 'Auxiliar_Docente' || (typeof cargo === 'string' && /(coordenador|auxiliar)/i.test(cargo));
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [current, setCurrent] = useState(() => {
     const today = new Date();
@@ -85,22 +117,36 @@ export default function AgendamentoPage() {
         try {
           const u = JSON.parse(s);
           setMyUserId(u?.id_usuario ?? null);
+          if (u?.cargo) setCargo(u.cargo);
         } catch {}
       }
     });
   }, []);
 
-  // Carrega labs e reservas
+  // Fallback: checa cargo via API
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await api.get<{ user?: { cargo?: string } }>(`/auth/me`);
+        const c = me.data?.user?.cargo;
+        if (c) setCargo(c);
+      } catch {}
+    })();
+  }, []);
+
+  // Carrega labs, reservas e fixos
   useEffect(() => {
     const load = async () => {
       try {
         setErrorMsg(null);
-        const [labsRes, reservasRes] = await Promise.all([
+        const [labsRes, reservasRes, fixosRes] = await Promise.all([
           api.get<Lab[]>(`/labs/all`),
           api.get<Reserva[]>(`/agendamentos/all`),
+          api.get<any[]>(`/horarios-fixos/`),
         ]);
         setLabs(labsRes.data as any);
         setReservas(reservasRes.data as any);
+        setFixos(Array.isArray(fixosRes.data) ? (fixosRes.data as any[]) : []);
       } catch (error: any) {
         console.error('Erro ao carregar dados:', error);
         const base = getApiBaseUrl();
@@ -120,8 +166,14 @@ export default function AgendamentoPage() {
       let active = true;
       const reload = async () => {
         try {
-          const reservasRes = await api.get<Reserva[]>(`/agendamentos/all`);
-          if (active) setReservas(reservasRes.data as any);
+          const [reservasRes, fixosRes] = await Promise.all([
+            api.get<Reserva[]>(`/agendamentos/all`),
+            api.get<any[]>(`/horarios-fixos/`),
+          ]);
+          if (active) {
+            setReservas(reservasRes.data as any);
+            setFixos(Array.isArray(fixosRes.data) ? (fixosRes.data as any[]) : []);
+          }
         } catch {}
       };
       reload();
@@ -151,14 +203,48 @@ export default function AgendamentoPage() {
     return cells;
   }, [current]);
 
-  // Reservas do dia selecionado
   const selectedYMD = useMemo(() => formatYMD(selectedDate), [selectedDate]);
-  const reservasDoDia = useMemo(
+
+  // Fixos do dia selecionado mapeados para pseudo-reservas
+  const fixosDoDia = useMemo(() => {
+    const ds = ymdToDiaSemana(selectedYMD);
+    if (!ds) return [] as Reserva[];
+    return (fixos || [])
+      .filter((f) => String(f.dia_semana).toLowerCase() === ds)
+      .map((f) => {
+        const numeroLab = f.nome_laboratorio ?? f.numero_laboratorio ?? f.numero ?? '';
+        return {
+          id_Reserva: -200000 - Number(f.id_horario_fixo || 0),
+          id_fixo: Number(f.id_horario_fixo || 0),
+          isFixo: true,
+          horario: String(f.horario),
+          dia: selectedYMD,
+          // justificativa não se aplica para fixo
+          justificativa: undefined,
+          fk_aulas: null,
+          nome_disciplina: null,
+          id_usuario: Number(f.id_usuario),
+          nome_usuario: String(f.nome_usuario || ''),
+          id_Laboratorio: Number(f.id_Laboratorio),
+          numero_laboratorio: String(numeroLab),
+        } as Reserva;
+      });
+  }, [fixos, selectedYMD]);
+
+  // Reservas do dia selecionado (normais)
+  const reservasDoDiaNormais = useMemo(
     () => reservas.filter((r) => toYMD((r as any).dia) === selectedYMD),
     [reservas, selectedYMD]
   );
 
-  // Ocupação por laboratório (contagem de reservas no dia)
+  // Combina: reservas do dia têm prioridade sobre fixos em caso de conflito (lab+horário)
+  const reservasDoDia = useMemo(() => {
+    const ocupados = new Set(reservasDoDiaNormais.map((r) => `${r.id_Laboratorio}-${timeToHHmm(r.horario)}`));
+    const fixosSemConflito = fixosDoDia.filter((f) => !ocupados.has(`${f.id_Laboratorio}-${timeToHHmm(f.horario)}`));
+    return [...reservasDoDiaNormais, ...fixosSemConflito];
+  }, [reservasDoDiaNormais, fixosDoDia]);
+
+  // Ocupação por laboratório (contagem de reservas no dia, incluindo fixos)
   const ocupacaoPorLab = useMemo(() => {
     const map = new Map<number, number>();
     for (const r of reservasDoDia) {
@@ -173,7 +259,7 @@ export default function AgendamentoPage() {
     return m || 1;
   }, [ocupacaoPorLab]);
 
-  // Meus agendamentos do dia
+  // Meus agendamentos do dia (inclui fixos)
   const meusAgendamentos = useMemo(() => {
     if (!myUserId) return [] as Reserva[];
     return reservasDoDia.filter((r) => r.id_usuario === myUserId);
@@ -193,7 +279,6 @@ export default function AgendamentoPage() {
     const m = current.getMonth();
     const newDate = new Date(y, m - 1, 1);
     setCurrent(newDate);
-    // Se o mês mudou e o dia selecionado não pertence, ajusta seleção para primeiro dia do novo mês
     if (newDate.getMonth() !== selectedDate.getMonth() || newDate.getFullYear() !== selectedDate.getFullYear()) {
       setSelectedDate(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
     }
@@ -210,16 +295,25 @@ export default function AgendamentoPage() {
   };
 
   const onAgendar = (lab: Lab) => {
-    router.push({ pathname: '/agendar', params: { labId: String(lab.id_Laboratorio), date: selectedYMD } });
+    const ymd = selectedYMD;
+    router.push({ pathname: '/agendar', params: { labId: String(lab.id_Laboratorio), date: ymd } });
   };
 
   // Ações de edição/exclusão
   const openEdit = (r: Reserva) => {
+    if (r.isFixo) {
+      Alert.alert('Não editável', 'Horários fixos não possuem justificativa para edição.');
+      return;
+    }
     setSelectedReserva(r);
     setEditJustificativa(r.justificativa || '');
     setEditModalVisible(true);
   };
   const openDelete = (r: Reserva) => {
+    if (r.isFixo && !isAuxCoord) {
+      Alert.alert('Ação não permitida', 'Apenas Coordenador ou Auxiliar Docente podem remover horários fixos.');
+      return;
+    }
     setSelectedReserva(r);
     setDeleteModalVisible(true);
   };
@@ -242,11 +336,27 @@ export default function AgendamentoPage() {
     if (!selectedReserva) return;
     try {
       setDeleting(true);
-      await api.post(`/agendamentos/delete/${selectedReserva.id_Reserva}`);
-      // Remove localmente
-      setReservas((prev) => prev.filter((x) => x.id_Reserva !== selectedReserva.id_Reserva));
+      if (selectedReserva.isFixo) {
+        // remover horário fixo
+        await api.delete(`/horarios-fixos/${selectedReserva.id_fixo}`);
+      } else {
+        await api.post(`/agendamentos/delete/${selectedReserva.id_Reserva}`);
+      }
+      // Atualiza listas locais mínimas
+      if (!selectedReserva.isFixo) {
+        setReservas((prev) => prev.filter((x) => x.id_Reserva !== selectedReserva.id_Reserva));
+      }
       setDeleteModalVisible(false);
       setSelectedReserva(null);
+      // Recarrega fixos/reservas para refletir estado
+      try {
+        const [reservasRes, fixosRes] = await Promise.all([
+          api.get<Reserva[]>(`/agendamentos/all`),
+          api.get<any[]>(`/horarios-fixos/`),
+        ]);
+        setReservas(reservasRes.data as any);
+        setFixos(Array.isArray(fixosRes.data) ? (fixosRes.data as any[]) : []);
+      } catch {}
     } catch (e) {
       console.error('Erro ao deletar agendamento', e);
     } finally {
@@ -314,7 +424,10 @@ export default function AgendamentoPage() {
               const isSelected = sameYMD(date, selectedDate);
               const isToday = sameYMD(date, new Date());
               const ymd = formatYMD(date);
-              const hasReserva = reservas.some((r) => toYMD((r as any).dia) === ymd);
+              const hasReserva = reservas.some((r) => toYMD((r as any).dia) === ymd) || (function(){
+                const ds = ymdToDiaSemana(ymd);
+                return (fixos || []).some((f) => String(f.dia_semana).toLowerCase() === ds);
+              })();
               return (
                 <TouchableOpacity
                   key={key}
@@ -385,9 +498,11 @@ export default function AgendamentoPage() {
                 ['#0EA5E9', '#2563EB'],
               ] as const;
               const colors = gradients[idx % gradients.length] as readonly [string, string];
+              const isFixo = !!a.isFixo;
+              const canDelete = isFixo ? isAuxCoord : true;
               return (
                 <LinearGradient
-                  key={a.id_Reserva}
+                  key={`${a.id_Reserva}`}
                   colors={colors}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
@@ -395,16 +510,23 @@ export default function AgendamentoPage() {
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1, paddingRight: 12 }}>
-                      <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {a.numero_laboratorio}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {a.numero_laboratorio}</Text>
+                        {isFixo ? (
+                          <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                            <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>
+                          </View>
+                        ) : null}
+                      </View>
                       <Text style={{ color: '#E5E7EB', marginTop: 4 }} numberOfLines={2}>
-                        {a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento'}
+                        {isFixo ? 'Horário fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento')}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity onPress={() => openEdit(a)} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33' }}>
+                      <TouchableOpacity onPress={() => openEdit(a)} disabled={isFixo} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: isFixo ? 0.4 : 1 }}>
                         <Ionicons name="create-outline" size={16} color="#fff" />
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => openDelete(a)} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33' }}>
+                      <TouchableOpacity onPress={() => openDelete(a)} disabled={!canDelete} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: !canDelete ? 0.4 : 1 }}>
                         <Ionicons name="trash-outline" size={16} color="#fff" />
                       </TouchableOpacity>
                     </View>
@@ -447,14 +569,14 @@ export default function AgendamentoPage() {
         <Modal visible={deleteModalVisible} animationType="fade" transparent onRequestClose={closeModals}>
           <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
             <View style={{ width: '100%', backgroundColor: '#0F1115', borderRadius: 16, padding: 16 }}>
-              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>Remover agendamento</Text>
-              <Text style={{ color: '#9CA3AF' }}>Tem certeza que deseja excluir este agendamento?</Text>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{selectedReserva?.isFixo ? 'Remover horário fixo' : 'Remover agendamento'}</Text>
+              <Text style={{ color: '#9CA3AF' }}>Tem certeza que deseja excluir {selectedReserva?.isFixo ? 'este horário fixo' : 'este agendamento'}?</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
                 <TouchableOpacity onPress={closeModals} style={{ paddingVertical: 10, paddingHorizontal: 14, marginRight: 8 }}>
                   <Text style={{ color: '#9CA3AF' }}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={{ backgroundColor: '#EF4444', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: deleting ? 0.7 : 1 }}>
-                  {deleting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>Excluir</Text>}
+                <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={{ backgroundColor: selectedReserva?.isFixo ? '#B91C1C' : '#EF4444', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: deleting ? 0.7 : 1 }}>
+                  {deleting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>{selectedReserva?.isFixo ? 'Remover fixo' : 'Excluir'}</Text>}
                 </TouchableOpacity>
               </View>
             </View>

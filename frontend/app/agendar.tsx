@@ -75,6 +75,19 @@ function timeToHHmm(v: unknown): string {
   return '';
 }
 
+// YYYY-MM-DD -> dia da semana do backend de fixos (local time, evita UTC)
+function ymdToDiaSemana(ymd: string) {
+  try {
+    const [y, m, d] = (ymd || '').split('-').map((v) => Number(v));
+    if (!y || !m || !d) return '';
+    const idx = new Date(y, m - 1, d).getDay(); // local date
+    const dias = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'] as const;
+    return dias[idx] || '';
+  } catch {
+    return '';
+  }
+}
+
 export default function AgendarLabPage() {
   const params = useLocalSearchParams<{ labId?: string; date?: string }>();
   const labId = Number(params.labId);
@@ -82,6 +95,7 @@ export default function AgendarLabPage() {
 
   const [lab, setLab] = useState<Lab | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [fixedTimes, setFixedTimes] = useState<string[]>([]); // HH:mm dos fixos para este lab e dia da semana
   const [savingSlot, setSavingSlot] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -206,19 +220,35 @@ export default function AgendarLabPage() {
     return `${d.nome_disciplina}${d.cursoNome ? ` · ${d.cursoNome}` : ''}`;
   }, [discWithCourse, selectedDisciplina]);
 
-  // Carrega informações do lab e reservas
+  // Carrega informações do lab e reservas + horários fixos
   useEffect(() => {
     const load = async () => {
       try {
         setErrorMsg(null);
-        const [labsRes, reservasRes] = await Promise.all([
+        const ds = ymdToDiaSemana(date);
+        const [labsRes, reservasRes, fixosRes] = await Promise.all([
           api.get<Lab[]>(`/labs/all`),
           api.get<Reserva[]>(`/agendamentos/all`),
+          api.get<any[]>(`/horarios-fixos/`),
         ]);
         const found = (labsRes.data as any as Lab[]).find((l) => l.id_Laboratorio === labId) || null;
         setLab(found);
         const all = reservasRes.data as any as Reserva[];
-        setReservas(all.filter((r: any) => r.id_Laboratorio === labId && toYMD(r.dia) === date));
+        const doDia = all.filter((r: any) => r.id_Laboratorio === labId && toYMD(r.dia) === date);
+        setReservas(doDia);
+
+        // mapear HH:mm de fixos deste lab e dia da semana
+        let ft: string[] = [];
+        if (Array.isArray(fixosRes.data) && ds) {
+          ft = (fixosRes.data as any[])
+            .filter((f: any) => {
+              const labFromRow = Number(f?.fk_lab ?? f?.id_Laboratorio);
+              const dia = String(f?.dia_semana || '').toLowerCase();
+              return labFromRow === Number(labId) && dia === ds;
+            })
+            .map((f: any) => timeToHHmm(f.horario));
+        }
+        setFixedTimes(ft);
       } catch (e: any) {
         setErrorMsg(e?.message || 'Erro ao carregar dados.');
       }
@@ -226,13 +256,23 @@ export default function AgendarLabPage() {
     if (labId) load();
   }, [labId, date]);
 
-  const reservedTimes = useMemo(() => new Set(reservas.map((r) => timeToHHmm((r as any).horario))), [reservas]);
-  const usagePercent = Math.round((reservas.length / SLOTS.length) * 100);
+  const reservedTimes = useMemo(() => {
+    const set = new Set<string>(reservas.map((r) => timeToHHmm((r as any).horario)));
+    for (const t of fixedTimes) set.add(t);
+    return set;
+  }, [reservas, fixedTimes]);
+
+  const usagePercent = useMemo(() => {
+    const distinct = new Set<string>();
+    for (const r of reservas) distinct.add(timeToHHmm((r as any).horario));
+    for (const t of fixedTimes) distinct.add(t);
+    return Math.round((distinct.size / SLOTS.length) * 100);
+  }, [reservas, fixedTimes]);
 
   const openForm = (startHHmm: string) => {
     setErrorMsg(null);
     setSlotToSchedule(startHHmm);
-    // Se já está reservado, não abre form
+    // Se já está reservado (inclui fixos), não abre form
     if (reservedTimes.has(startHHmm)) return;
     // define professor conforme cargo
     if (isAdmin) {
@@ -318,6 +358,7 @@ export default function AgendarLabPage() {
       <View style={{ paddingHorizontal: 16, gap: 10 }}>
         {SLOTS.map((s) => {
           const reserved = reservedTimes.has(s.start);
+          const isFixed = fixedTimes.includes(s.start);
           return (
             <View key={s.key} style={{ backgroundColor: '#0F172A', borderRadius: 16, overflow: 'hidden' }}>
               <View style={{ height: 8, backgroundColor: s.color, opacity: 0.9 }} />
@@ -332,7 +373,7 @@ export default function AgendarLabPage() {
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{ backgroundColor: reserved ? '#1F2937' : '#16A34A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? 'Em uso' : 'Livre'}</Text>
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? (isFixed ? 'Fixo' : 'Em uso') : 'Livre'}</Text>
                   </View>
                   <TouchableOpacity
                     disabled={reserved || savingSlot === s.start}
@@ -498,28 +539,25 @@ export default function AgendarLabPage() {
                   </View>
                 )}
 
-                {/* Justificativa */}
+                {/* Justificativa (opcional) */}
                 <View style={{ marginTop: 16 }}>
-                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa</Text>
+                  <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa (opcional)</Text>
                   <TextInput
-                    placeholder="Motivo do uso do laboratório..."
+                    placeholder="Ex.: Aula prática, reposição, etc."
                     placeholderTextColor="#6B7280"
-                    style={{ backgroundColor: '#0F172A', borderRadius: 12, color: 'white', padding: 12, minHeight: 80 }}
                     value={justificativa}
                     onChangeText={setJustificativa}
-                    multiline
+                    style={{ color: 'white', backgroundColor: '#0F172A', borderWidth: 1, borderColor: '#1F2937', borderRadius: 12, padding: 12 }}
                   />
                 </View>
 
-                {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
-
                 {/* Ações */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
-                  <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#374151' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
+                  <TouchableOpacity onPress={() => setShowForm(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
                     <Text style={{ color: 'white' }}>Cancelar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: '#3B96E2' }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>Agendar</Text>
+                  <TouchableOpacity onPress={submitReserva} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>Salvar</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>
