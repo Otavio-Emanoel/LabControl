@@ -384,7 +384,7 @@ export default function AgendamentoPage() {
         </Link>
 
         {/* Tabs */}
-        <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
+        {/* <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
           <TouchableOpacity
             className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selectedTab === 'professores' ? 'bg-[#3B96E2]' : ''}`}
             onPress={() => setSelectedTab('professores')}
@@ -397,7 +397,7 @@ export default function AgendamentoPage() {
           >
             <Text className={`font-poppins ${selectedTab === 'organizacao' ? 'color-white' : ''}`}>Organização</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
         {/* Calendário */}
         <View style={{ marginTop: 16, paddingHorizontal: 16 }}>

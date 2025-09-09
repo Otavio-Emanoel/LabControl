@@ -135,7 +135,7 @@ export default function Index() {
           </TouchableOpacity>
 
           <View className="flex flex-row gap-4">
-            <TouchableOpacity className="w-10 h-10 rounded-full bg-white items-center justify-center">
+            <TouchableOpacity className="w-10 h-10 rounded-full bg-white items-center justify-center" onPress={() => router.push('/notificacoes')}>
               <Ionicons name="notifications-outline" size={22} color="#000" />
             </TouchableOpacity>
 

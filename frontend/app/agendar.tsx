@@ -544,9 +544,9 @@ export default function AgendarLabPage() {
                     </View>
                   )}
 
-                  {/* Justificativa (opcional) */}
+                  {/* Justificativa */}
                   <View style={{ marginTop: 16 }}>
-                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa (opcional)</Text>
+                    <Text style={{ color: '#E5E7EB', marginBottom: 6 }}>Justificativa</Text>
                     <TextInput
                       placeholder="Ex.: Aula prática, reposição, etc."
                       placeholderTextColor="#6B7280"
