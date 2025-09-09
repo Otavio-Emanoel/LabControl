@@ -6,6 +6,7 @@ import authRouter from './routes/auth.routes';
 import agendamentosRouter from './routes/agendamento.routes';
 import horariosFixosRouter from './routes/horariosfixos.routes'
 import labsRouter from './routes/labs.routes';
+import notificacoesRouter from './routes/notificacoes.routes';
 import { pool } from './database/connection';
 
 const app = express();
@@ -31,6 +32,8 @@ app.use("/agendamentos",agendamentosRouter)
 app.use("/horarios-fixos",horariosFixosRouter)
 //Rota para buscar laboratórios
 app.use("/labs",labsRouter)
+//Rota para notificações
+app.use('/notificacoes', notificacoesRouter)
 
 const server = app.listen(port, () => {
   console.log(`O servidor tá rodando em http://localhost:${port}`);

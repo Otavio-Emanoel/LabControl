@@ -132,6 +132,30 @@
 
 ---
 
+### Notificações
+
+Geração automática:
+- Quando um Professor realiza o 3º agendamento no mesmo dia (excedendo 2), é criada uma notificação para cada usuário com cargo Auxiliar_Docente.
+- Tipo: `LIMITE_AGENDAMENTOS`.
+- Conteúdo inclui: professor, data, total no dia e lista dos horários/laboratórios.
+
+**GET /notificacoes**
+- Lista notificações do usuário autenticado (ordenadas: não lidas primeiro, depois mais recentes)
+- Necessário token
+- Retorna: `[ { id_notificacao, tipo, titulo, mensagem, lida, data_criacao } ]`
+
+**POST /notificacoes/ler/:id**
+- Marca uma notificação específica como lida (apenas se pertencer ao usuário)
+- Necessário token
+- Retorno: `{ ok: true }` ou 404 se não pertencer/não existir
+
+**POST /notificacoes/ler-todas**
+- Marca todas as notificações do usuário como lidas
+- Necessário token
+- Retorno: `{ ok: true, atualizadas: <quantidade> }`
+
+---
+
 ### Outros
 
 **/test/**

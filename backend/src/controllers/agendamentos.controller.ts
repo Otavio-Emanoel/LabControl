@@ -297,6 +297,54 @@ export const criarAgendamento = async (req: Request, res: Response) => {
     }
 
     const result = await cadastrarAgendamento({ horario, dia, fk_aulas: fk_aulas as any, justificativa, fk_laboratorio, fk_usuario: fk_usuario as any });
+
+    // ================= Notificação: limite diário de agendamentos =================
+    try {
+      // Conta quantos agendamentos esse professor já tem no dia
+      const [countRows]: any = await pool.query(
+        'SELECT COUNT(*) AS total FROM reserva WHERE fk_usuario = ? AND dia = ?',
+        [fk_usuario, dia]
+      );
+      const total = countRows?.[0]?.total ?? 0;
+
+      // Dispara somente quando atingir exatamente 3 (primeira vez que excede 2)
+      if (total === 3) {
+        // Detalhes dos agendamentos do dia
+        const [detRows]: any = await pool.query(
+          `SELECT r.horario, r.justificativa, l.numero AS numero_lab, d.nome AS nome_disciplina
+             FROM reserva r
+             INNER JOIN laboratorio l ON r.fk_laboratorio = l.id_Laboratorio
+             LEFT JOIN disciplina d ON r.fk_aulas = d.id_disciplina
+             WHERE r.fk_usuario = ? AND r.dia = ?
+             ORDER BY r.horario`,
+          [fk_usuario, dia]
+        );
+        // Nome do professor
+        const [profRows]: any = await pool.query('SELECT nome FROM usuarios WHERE id_usuario = ? LIMIT 1',[fk_usuario]);
+        const nomeProfessor = profRows?.[0]?.nome || 'Professor';
+        // Auxiliares docentes
+        const [auxRows]: any = await pool.query(`SELECT id_usuario FROM usuarios WHERE cargo = 'Auxiliar_Docente'`);
+        if (Array.isArray(auxRows) && auxRows.length) {
+          // Garante tabela notificacao
+          await pool.query(`CREATE TABLE IF NOT EXISTS notificacao (\n            id_notificacao INT AUTO_INCREMENT PRIMARY KEY,\n            tipo VARCHAR(60) NOT NULL,\n            titulo VARCHAR(255) NOT NULL,\n            mensagem TEXT NOT NULL,\n            id_usuario_destino INT NOT NULL,\n            lida TINYINT(1) DEFAULT 0,\n            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,\n            FOREIGN KEY (id_usuario_destino) REFERENCES usuarios(id_usuario)\n          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+
+          const titulo = 'Professor excedeu limite diário de agendamentos';
+          const linhas = detRows.map((r: any) => `• ${String(r.horario).slice(0,5)} | Lab ${r.numero_lab}${r.nome_disciplina ? ' | '+r.nome_disciplina : ''}${r.justificativa ? ' | '+r.justificativa : ''}`).join('\n');
+          const mensagem = `Professor: ${nomeProfessor}\nData: ${dia}\nTotal no dia: ${total}\n\nAgendamentos:\n${linhas}`;
+
+          for (const aux of auxRows) {
+            await pool.query(
+              'INSERT INTO notificacao (tipo, titulo, mensagem, id_usuario_destino) VALUES (?,?,?,?)',
+              ['LIMITE_AGENDAMENTOS', titulo, mensagem, aux.id_usuario]
+            );
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error('Falha ao criar notificação (limite agendamentos):', notifErr);
+    }
+    // ============================================================================
+
     res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao cadastrar agendamento', details: error instanceof Error ? error.message : String(error) });
