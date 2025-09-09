@@ -87,7 +87,7 @@ function ymdToDiaSemana(ymd: string) {
 
 export default function AgendamentoPage() {
   const router = useRouter();
-  const [selectedTab, setSelectedTab] = useState<'professores' | 'organizacao'>('professores');
+  // const [selectedTab, setSelectedTab] = useState<'professores' | 'organizacao'>('professores');
   const [labs, setLabs] = useState<Lab[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [fixos, setFixos] = useState<any[]>([]);
