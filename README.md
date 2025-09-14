@@ -1,6 +1,10 @@
-# LabControl 🎓📅
+<p align="center">
+  <img src="preview/icon.png" width="96" style="background-color: #f1f1f1f1; border-radius: 20%;" alt="LabControl Logo" />
+</p>
+<h1 align="center">LabControl</h1>
+<p align="center"><em>Gestão de Laboratórios e Agendamentos</em></p>
 
-> Sistema de gestão e agendamento de Laboratórios de Informática da **Etec de Peruíbe**.
+> Sistema de gestão e agendamento de Laboratórios de Informática da **Etec de Peruíbe** desenvolvido pela turma do 2DS de 2025.
 
 ## 🎯 Visão Geral
 O **LabControl** facilita o controle de uso dos laboratórios (e auditório) por Professores, Coordenadores e Auxiliares Docentes. O sistema oferece:
