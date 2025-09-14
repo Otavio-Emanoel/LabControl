@@ -373,7 +373,7 @@ export default function AgendamentoPage() {
     <View className='flex-1 bg-black'>
       <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 104 }}>
         {/* background image */}
-        <View style={{ width: '100%', height: '33%', position: 'absolute', top: 0, left: 0 }}>
+        <View style={{ width: '100%', height: '13%', position: 'absolute', top: 0, left: 0 }}>
           <Image source={require('../assets/images/bg2.jpg')} style={{ width: '100%', height: '100%' }} />
         </View>
 

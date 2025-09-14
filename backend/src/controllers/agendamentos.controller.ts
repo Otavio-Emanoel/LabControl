@@ -316,18 +316,17 @@ export const criarAgendamento = async (req: Request, res: Response) => {
 
     const result = await cadastrarAgendamento({ horario, dia, fk_aulas: fk_aulas as any, justificativa, fk_laboratorio, fk_usuario: fk_usuario as any });
 
-    // ================= Notificação: limite diário de agendamentos =================
+    // ================= Notificação: limites de agendamentos (diário e semanal) =================
     try {
       // Conta quantos agendamentos esse professor já tem no dia
       const [countRows]: any = await pool.query(
-        'SELECT COUNT(*) AS total FROM reserva WHERE fk_usuario = ? AND dia = ?',
-        [fk_usuario, dia]
+        'SELECT COUNT(*) AS total FROM reserva WHERE fk_usuario = ? AND dia = ?',[fk_usuario, dia]
       );
       const total = countRows?.[0]?.total ?? 0;
 
-      // Dispara somente quando atingir exatamente 3 (primeira vez que excede 2)
-      if (total === 3) {
-        // Detalhes dos agendamentos do dia
+      // Sempre que total >= 3 gerenciar notificação (cria na 3ª, atualiza na 4ª+)
+      if (total >= 3) {
+        // Detalhes do dia
         const [detRows]: any = await pool.query(
           `SELECT r.horario, r.justificativa, l.numero AS numero_lab, d.nome AS nome_disciplina
              FROM reserva r
@@ -337,29 +336,79 @@ export const criarAgendamento = async (req: Request, res: Response) => {
              ORDER BY r.horario`,
           [fk_usuario, dia]
         );
-        // Nome do professor
         const [profRows]: any = await pool.query('SELECT nome FROM usuarios WHERE id_usuario = ? LIMIT 1',[fk_usuario]);
         const nomeProfessor = profRows?.[0]?.nome || 'Professor';
-        // Auxiliares docentes
         const [auxRows]: any = await pool.query(`SELECT id_usuario FROM usuarios WHERE cargo = 'Auxiliar_Docente'`);
         if (Array.isArray(auxRows) && auxRows.length) {
-          // Garante tabela notificacao
           await pool.query(`CREATE TABLE IF NOT EXISTS notificacao (\n            id_notificacao INT AUTO_INCREMENT PRIMARY KEY,\n            tipo VARCHAR(60) NOT NULL,\n            titulo VARCHAR(255) NOT NULL,\n            mensagem TEXT NOT NULL,\n            id_usuario_destino INT NOT NULL,\n            lida TINYINT(1) DEFAULT 0,\n            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,\n            FOREIGN KEY (id_usuario_destino) REFERENCES usuarios(id_usuario)\n          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
-
           const titulo = 'Professor excedeu limite diário de agendamentos';
           const linhas = detRows.map((r: any) => `• ${String(r.horario).slice(0,5)} | Lab ${r.numero_lab}${r.nome_disciplina ? ' | '+r.nome_disciplina : ''}${r.justificativa ? ' | '+r.justificativa : ''}`).join('\n');
-          const mensagem = `Professor: ${nomeProfessor}\nData: ${dia}\nTotal no dia: ${total}\n\nAgendamentos:\n${linhas}`;
-
+          const mensagemBase = `Professor: ${nomeProfessor}\nData: ${dia}\nTotal no dia: ${total}\n\nAgendamentos:\n${linhas}`;
           for (const aux of auxRows) {
-            await pool.query(
-              'INSERT INTO notificacao (tipo, titulo, mensagem, id_usuario_destino) VALUES (?,?,?,?)',
-              ['LIMITE_AGENDAMENTOS', titulo, mensagem, aux.id_usuario]
+            // Verifica se já existe notificação desse dia para este auxiliar
+            const likePattern = `%Data: ${dia}%`;
+            const [exist]: any = await pool.query(
+              'SELECT id_notificacao FROM notificacao WHERE tipo = ? AND id_usuario_destino = ? AND mensagem LIKE ? LIMIT 1',
+              ['LIMITE_AGENDAMENTOS', aux.id_usuario, likePattern]
             );
+            if (Array.isArray(exist) && exist.length > 0) {
+              // Atualiza mensagem/título com novo total
+              await pool.query(
+                'UPDATE notificacao SET mensagem = ?, titulo = ? WHERE id_notificacao = ?',
+                [mensagemBase, titulo, exist[0].id_notificacao]
+              );
+            } else if (total === 3) {
+              // Cria somente na terceira vez se ainda não existir
+              await pool.query(
+                'INSERT INTO notificacao (tipo, titulo, mensagem, id_usuario_destino) VALUES (?,?,?,?)',
+                ['LIMITE_AGENDAMENTOS', titulo, mensagemBase, aux.id_usuario]
+              );
+            }
           }
         }
       }
+
+      // ================= Limite semanal (>=7 reservas em janela móvel de 7 dias) =================
+      try {
+        const diaDate = new Date(`${dia}T00:00:00`);
+        if (!isNaN(diaDate.getTime())) {
+          const startRange = new Date(diaDate);
+          startRange.setDate(startRange.getDate() - 6); // últimos 7 dias incluindo hoje
+          // datas locais (não usar toISOString para evitar fuso)
+          const toLocalYMD = (dt: Date) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+          const startStr = toLocalYMD(startRange);
+          const endStr = dia; // inclusive
+          const [semRows]: any = await pool.query(
+            'SELECT COUNT(*) AS total FROM reserva WHERE fk_usuario = ? AND dia BETWEEN ? AND ?',
+            [fk_usuario, startStr, endStr]
+          );
+          const totalSemana = semRows?.[0]?.total ?? 0;
+          if (totalSemana >= 7) {
+            await pool.query(`CREATE TABLE IF NOT EXISTS notificacao (\n              id_notificacao INT AUTO_INCREMENT PRIMARY KEY,\n              tipo VARCHAR(60) NOT NULL,\n              titulo VARCHAR(255) NOT NULL,\n              mensagem TEXT NOT NULL,\n              id_usuario_destino INT NOT NULL,\n              lida TINYINT(1) DEFAULT 0,\n              data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,\n              FOREIGN KEY (id_usuario_destino) REFERENCES usuarios(id_usuario)\n            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+            const tituloSem = 'Muitos agendamentos em curto período';
+            const mensagemSem = `Você realizou ${totalSemana} agendamentos nos últimos 7 dias (de ${startStr} a ${endStr}).\nSucessivos agendamentos podem comprometer a organização da escola.\nCoordenação/Auxiliar Docente podem cancelar reservas que causem conflitos.`;
+            const likePatternWeek = `%${startStr} a ${endStr}%`;
+            const [existSem]: any = await pool.query(
+              'SELECT id_notificacao FROM notificacao WHERE tipo = ? AND id_usuario_destino = ? AND mensagem LIKE ? LIMIT 1',
+              ['LIMITE_SEMANAL_AGENDAMENTOS', fk_usuario, likePatternWeek]
+            );
+            if (Array.isArray(existSem) && existSem.length > 0) {
+              // Atualiza com novo total semanal
+              await pool.query('UPDATE notificacao SET mensagem = ?, titulo = ? WHERE id_notificacao = ?', [mensagemSem, tituloSem, existSem[0].id_notificacao]);
+            } else {
+              await pool.query(
+                'INSERT INTO notificacao (tipo, titulo, mensagem, id_usuario_destino) VALUES (?,?,?,?)',
+                ['LIMITE_SEMANAL_AGENDAMENTOS', tituloSem, mensagemSem, fk_usuario]
+              );
+            }
+          }
+        }
+      } catch (errSem) {
+        console.error('Falha ao avaliar limite semanal:', errSem);
+      }
+      // ============================================================================
     } catch (notifErr) {
-      console.error('Falha ao criar notificação (limite agendamentos):', notifErr);
+      console.error('Falha ao criar/atualizar notificações de limites:', notifErr);
     }
     // ============================================================================
 
