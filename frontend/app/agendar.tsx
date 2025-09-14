@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
@@ -290,11 +290,37 @@ export default function AgendarLabPage() {
     setShowForm(true);
   };
 
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+  const toastTranslate = useRef(new Animated.Value(30)).current;
+
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    toastOpacity.setValue(0);
+    toastTranslate.setValue(30);
+    Animated.parallel([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 260, useNativeDriver: true }),
+      Animated.spring(toastTranslate, { toValue: 0, useNativeDriver: true })
+    ]).start(() => {
+      setTimeout(() => {
+        Animated.parallel([
+          Animated.timing(toastOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+          Animated.timing(toastTranslate, { toValue: 20, duration: 220, useNativeDriver: true })
+        ]).start(() => setToastMsg(null));
+      }, 2200);
+    });
+  }, [toastOpacity, toastTranslate]);
+
   const submitReserva = async () => {
     if (!slotToSchedule) return;
     const fk_usuario = isAdmin ? selectedProfessor : myUserId;
     if (!fk_usuario) {
       setErrorMsg('Selecione um professor.');
+      return;
+    }
+    if (!justificativa || justificativa.trim().length === 0) {
+      setErrorMsg('Justificativa é obrigatória.');
+      showToast('Informe a justificativa ✍️');
       return;
     }
 
@@ -320,7 +346,7 @@ export default function AgendarLabPage() {
         horario: `${slotToSchedule}:00`,
         dia: date,
         fk_aulas: selectedDisciplina != null ? Number(selectedDisciplina) : null,
-        justificativa: justificativa || null,
+        justificativa: justificativa.trim(),
         fk_laboratorio: labId,
         fk_usuario,
       });
@@ -329,8 +355,11 @@ export default function AgendarLabPage() {
       const all = reservasRes.data as any as Reserva[];
       setReservas(all.filter((r: any) => r.id_Laboratorio === labId && toYMD(r.dia) === date));
       setShowForm(false);
+      showToast('Agendamento criado! ✅');
     } catch (e: any) {
-      setErrorMsg(e?.response?.data?.error || e?.message || 'Erro ao agendar.');
+      const msg = e?.response?.data?.error || e?.message || 'Erro ao agendar.';
+      setErrorMsg(msg);
+      showToast('Falha ao agendar ❌');
     } finally {
       setSavingSlot(null);
     }
@@ -571,6 +600,27 @@ export default function AgendarLabPage() {
           </View>
         </Modal>
       </ScrollView>
+
+      {/* Toast inferior */}
+      {toastMsg ? (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 90, 
+            alignItems: 'center',
+            opacity: toastOpacity,
+            transform: [{ translateY: toastTranslate }]
+          }}
+        >
+          <View style={{ backgroundColor: '#111827', paddingHorizontal: 18, paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: '#1F2937', flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 8, gap: 10 }}>
+            <Text style={{ fontSize: 16 }}>{toastMsg.includes('Falha') ? '⚠️' : '🎉'}</Text>
+            <Text style={{ color: 'white', fontWeight: '600' }}>{toastMsg}</Text>
+          </View>
+        </Animated.View>
+      ) : null}
 
       {/* Nav fixa */}
       <Nav active="agendamento" />

@@ -240,6 +240,11 @@ export const listarAgendamentosPorUsuario = async (req: Request, res: Response) 
 export const criarAgendamento = async (req: Request, res: Response) => {
   const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario: bodyFkUsuario } = req.body as any as DbAgendamento & { fk_usuario?: number };
   try {
+    // NOVO: valida justificativa obrigatória
+    if (typeof justificativa !== 'string' || justificativa.trim().length === 0) {
+      return res.status(400).json({ error: 'Justificativa é obrigatória.' });
+    }
+
     // valida horario permitido
     if (!ALLOWED_TIMES.includes(horario)) {
       return res.status(400).json({ error: 'Horário inválido. Use um dos horários permitidos.' });
@@ -314,7 +319,7 @@ export const criarAgendamento = async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Laboratório já reservado neste horário.' });
     }
 
-    const result = await cadastrarAgendamento({ horario, dia, fk_aulas: fk_aulas as any, justificativa, fk_laboratorio, fk_usuario: fk_usuario as any });
+    const result = await cadastrarAgendamento({ horario, dia, fk_aulas: fk_aulas as any, justificativa: justificativa.trim(), fk_laboratorio, fk_usuario: fk_usuario as any });
 
     // ================= Notificação: limites de agendamentos (diário e semanal) =================
     try {
@@ -434,7 +439,11 @@ export const editarAgendamento = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario } = req.body as DbAgendamento;
   try {
-    const result = await atualizarAgendamento(id, { horario, dia, fk_aulas, justificativa, fk_laboratorio, fk_usuario });
+    // NOVO: valida justificativa obrigatória
+    if (typeof justificativa !== 'string' || justificativa.trim().length === 0) {
+      return res.status(400).json({ error: 'Justificativa é obrigatória.' });
+    }
+    const result = await atualizarAgendamento(id, { horario, dia, fk_aulas, justificativa: justificativa.trim(), fk_laboratorio, fk_usuario });
     res.json(result);
   } catch (error) {
     const m = msg(error);
@@ -447,10 +456,10 @@ export const editarJustificativa = async (req: Request, res: Response) => {
   const id = Number(req.params.id);
   const { justificativa } = req.body as { justificativa?: string };
   try {
-    if (typeof justificativa !== 'string') {
-      return res.status(400).json({ error: 'Campo justificativa é obrigatório e deve ser string.' });
+    if (typeof justificativa !== 'string' || justificativa.trim().length === 0) {
+      return res.status(400).json({ error: 'Justificativa é obrigatória.' });
     }
-    const result = await atualizarJustificativa(id, justificativa);
+    const result = await atualizarJustificativa(id, justificativa.trim());
     res.json(result);
   } catch (error) {
     const m = msg(error);
