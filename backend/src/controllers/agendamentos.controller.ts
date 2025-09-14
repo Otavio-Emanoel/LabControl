@@ -258,6 +258,24 @@ export const criarAgendamento = async (req: Request, res: Response) => {
     const user = (req as any).user as { id_usuario: number; cargo: string } | undefined;
     if (!user) return res.status(401).json({ error: 'Não autenticado' });
 
+    // NOVA REGRA: Professor só pode agendar até 14 dias no futuro
+    if (user.cargo === 'Professor') {
+      try {
+        const diaDate = new Date(`${dia}T00:00:00`);
+        if (isNaN(diaDate.getTime())) {
+          return res.status(400).json({ error: 'Data inválida.' });
+        }
+        const limit = new Date();
+        limit.setHours(0,0,0,0);
+        limit.setDate(limit.getDate() + 14); // 14 dias à frente (duas semanas)
+        if (diaDate > limit) {
+          return res.status(400).json({ error: 'Professores só podem agendar com até 14 dias de antecedência.' });
+        }
+      } catch {
+        return res.status(400).json({ error: 'Data inválida.' });
+      }
+    }
+
     // Determina o usuário responsável conforme cargo
     let fk_usuario = bodyFkUsuario as unknown as number | null;
     if (user.cargo === 'Professor') {

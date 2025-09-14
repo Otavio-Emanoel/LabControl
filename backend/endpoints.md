@@ -69,6 +69,7 @@
   - Não permite datas passadas
   - Se `fk_aulas` for enviado, a disciplina deve existir; se o usuário logado for Professor, ele deve estar vinculado a essa disciplina
   - Impede duplicidade por (fk_laboratorio, dia, horario)
+  - Professores só podem agendar com no máximo 14 dias (2 semanas) de antecedência
 
 **GET /agendamentos/all**
 - Lista todos os agendamentos
