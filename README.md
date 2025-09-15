@@ -52,7 +52,7 @@ O **LabControl** facilita o controle de uso dos laboratórios (e auditório) por
 ## 👥 Perfis de Usuário
 | Cargo | Pode Agendar | Converte p/ Horário Fixo | Recebe Notificação Diário | Recebe Notificação Semanal | Gerencia Disciplinas |
 |-------|--------------|--------------------------|---------------------------|----------------------------|----------------------|
-| Professor | Para si | Não | Não (avisos vão para Auxiliar) | Sim | Não |
+| Professor | Para sim | Não | Não (avisos vão para Auxiliar) | Sim | Não |
 | Auxiliar_Docente | Para Professores | Sim | Sim (sobre Professores) | Não | Parcial (consultas) |
 | Coordenador | Para Professores | Sim | Sim | Não | Sim |
 
