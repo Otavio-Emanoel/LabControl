@@ -240,3 +240,99 @@ export async function listarProfessores(_req: Request, res: Response) {
     return res.status(500).json({ error: message });
   }
 }
+
+// Remover curso
+export async function removerCurso(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || usuario.cargo !== 'Auxiliar_Docente') {
+            return res.status(403).json({ error: 'Apenas Auxiliar Docente pode remover curso.' });
+        }
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ error: 'ID do curso é obrigatório.' });
+
+        // Verifica dependências (disciplinas)
+        const [dep]: any = await pool.query('SELECT id_disciplina FROM disciplina WHERE id_curso = ? LIMIT 1', [id]);
+        if (Array.isArray(dep) && dep.length) {
+            return res.status(409).json({ error: 'Curso possui disciplinas vinculadas. Remova-as primeiro.' });
+        }
+
+        const [del]: any = await pool.query('DELETE FROM curso WHERE id_curso = ? LIMIT 1', [id]);
+        if (del.affectedRows === 0) return res.status(404).json({ error: 'Curso não encontrado.' });
+        return res.json({ message: 'Curso removido com sucesso.' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
+// Remover disciplina
+export async function removerDisciplina(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || (usuario.cargo !== 'Coordenador' && usuario.cargo !== 'Auxiliar_Docente')) {
+            return res.status(403).json({ error: 'Apenas Coordenador ou Auxiliar Docente pode remover disciplina.' });
+        }
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ error: 'ID da disciplina é obrigatório.' });
+
+        // Verifica vínculos professor-disciplina
+        const [vinc]: any = await pool.query('SELECT id FROM professor_disciplina WHERE id_disciplina = ? LIMIT 1', [id]);
+        if (Array.isArray(vinc) && vinc.length) {
+            return res.status(409).json({ error: 'Disciplina possui professores vinculados. Remova vínculos primeiro.' });
+        }
+
+        // Verifica reservas (fk_aulas)
+        const [resv]: any = await pool.query('SELECT id_Reserva FROM reserva WHERE fk_aulas = ? LIMIT 1', [id]);
+        if (Array.isArray(resv) && resv.length) {
+            return res.status(409).json({ error: 'Disciplina utilizada em reservas. Ajuste ou remova reservas antes.' });
+        }
+
+        const [del]: any = await pool.query('DELETE FROM disciplina WHERE id_disciplina = ? LIMIT 1', [id]);
+        if (del.affectedRows === 0) return res.status(404).json({ error: 'Disciplina não encontrada.' });
+        return res.json({ message: 'Disciplina removida com sucesso.' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
+// Remover usuário (somente Auxiliar Docente) – não permite se houver reservas ou horários fixos
+export async function removerUsuario(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || usuario.cargo !== 'Auxiliar_Docente') {
+            return res.status(403).json({ error: 'Apenas Auxiliar Docente pode remover usuário.' });
+        }
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+
+        // Evita auto-exclusão opcionalmente
+        if (Number(id) === Number(usuario.id_usuario)) {
+            return res.status(400).json({ error: 'Não é permitido remover a si próprio.' });
+        }
+
+        // Verifica reservas
+        const [resv]: any = await pool.query('SELECT id_Reserva FROM reserva WHERE fk_usuario = ? LIMIT 1', [id]);
+        if (Array.isArray(resv) && resv.length) {
+            return res.status(409).json({ error: 'Usuário possui reservas. Remova ou transfira antes.' });
+        }
+        // Verifica horários fixos
+        const [fixos]: any = await pool.query('SELECT id_horario_fixo FROM horarios_fixos WHERE fk_usuario = ? LIMIT 1', [id]);
+        if (Array.isArray(fixos) && fixos.length) {
+            return res.status(409).json({ error: 'Usuário possui horários fixos. Remova-os antes.' });
+        }
+        // Verifica vínculos professor-disciplina
+        const [vinc]: any = await pool.query('SELECT id FROM professor_disciplina WHERE id_usuario = ? LIMIT 1', [id]);
+        if (Array.isArray(vinc) && vinc.length) {
+            return res.status(409).json({ error: 'Usuário vinculado a disciplinas. Remova vínculos antes.' });
+        }
+
+        const [del]: any = await pool.query('DELETE FROM usuarios WHERE id_usuario = ? LIMIT 1', [id]);
+        if (del.affectedRows === 0) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        return res.json({ message: 'Usuário removido com sucesso.' });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}

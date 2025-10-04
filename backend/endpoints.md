@@ -56,6 +56,24 @@
 - Body: `{ id_usuario, id_disciplina }`
 - Necessário token de Coordenador ou Auxiliar_Docente
 
+**DELETE /auth/usuario/:id**
+- Remove um usuário (apenas Auxiliar_Docente)
+- Regras:
+  - Bloqueia se houver reservas, horários fixos ou vínculos disciplina.
+- Retornos: 200 sucesso, 404 não encontrado, 409 dependências.
+
+**DELETE /auth/curso/:id**
+- Remove curso (apenas Auxiliar_Docente)
+- Regras:
+  - Bloqueia se houver disciplinas vinculadas.
+- Retornos: 200 sucesso, 404 não encontrado, 409 dependências.
+
+**DELETE /auth/disciplina/:id**
+- Remove disciplina (Coordenador ou Auxiliar_Docente)
+- Regras:
+  - Bloqueia se houver vínculos professor-disciplina ou reservas usando `fk_aulas`.
+- Retornos: 200 sucesso, 404 não encontrada, 409 dependências.
+
 ---
 
 ### Agendamentos
