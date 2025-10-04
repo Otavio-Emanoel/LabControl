@@ -70,6 +70,7 @@
   - Se `fk_aulas` for enviado, a disciplina deve existir; se o usuário logado for Professor, ele deve estar vinculado a essa disciplina
   - Impede duplicidade por (fk_laboratorio, dia, horario)
   - Professores só podem agendar com no máximo 14 dias (2 semanas) de antecedência
+  - Campo `justificativa` agora é OBRIGATÓRIO e não pode ser vazio
 
 **GET /agendamentos/all**
 - Lista todos os agendamentos
@@ -136,9 +137,8 @@
 ### Notificações
 
 Geração automática:
-- Quando um Professor realiza o 3º agendamento no mesmo dia (excedendo 2), é criada uma notificação para cada usuário com cargo Auxiliar_Docente.
-- Tipo: `LIMITE_AGENDAMENTOS`.
-- Conteúdo inclui: professor, data, total no dia e lista dos horários/laboratórios.
+- Diário: quando um Professor realiza o 3º agendamento no mesmo dia (excedendo 2), é criada/atualizada uma notificação (tipo `LIMITE_AGENDAMENTOS`) para cada usuário com cargo Auxiliar_Docente contendo: professor, data, total no dia e lista dos horários/laboratórios.
+- Semanal: quando um Professor atinge 7 agendamentos em uma janela rolante de 7 dias corridos, é criada/atualizada uma notificação (tipo `LIMITE_AGENDAMENTOS_SEMANAL`) para cada usuário com cargo Coordenador (ou Auxiliar_Docente, conforme regra futura) detalhando total semanal e lista resumida.
 
 **GET /notificacoes**
 - Lista notificações do usuário autenticado (ordenadas: não lidas primeiro, depois mais recentes)
@@ -161,3 +161,34 @@ Geração automática:
 
 **/test/**
 - Rotas de teste
+
+---
+
+### Laboratórios
+
+**GET /labs/all**
+- Lista todos os laboratórios.
+- Retorno: `[ { id_Laboratorio, numero, descricao } ]`
+
+**POST /labs**
+- Cria um novo laboratório ou auditório.
+- Body: `{ numero, descricao? }`
+- Regras:
+  - `numero` obrigatório, string não vazia.
+  - Sem duplicidade (case-insensitive) de `numero`.
+ - Necessário token de `Auxiliar_Docente`.
+- Retornos:
+  - 201 `{ id_Laboratorio, numero, descricao }`
+  - 409 se já existir laboratório com mesmo nome.
+
+**DELETE /labs/:id**
+- Remove laboratório pelo ID.
+- Regras:
+  - Bloqueia remoção se existir reserva vinculada.
+ - Necessário token de `Auxiliar_Docente`.
+- Retornos:
+  - 200 `{ ok: true }`
+  - 404 se não encontrado.
+  - 409 se em uso.
+
+> Obs.: Acesso às rotas de criação e remoção restrito ao cargo `Auxiliar_Docente`.

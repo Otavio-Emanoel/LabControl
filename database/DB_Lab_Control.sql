@@ -53,23 +53,25 @@ CREATE TABLE `horarios_fixos` (
 
 --
 -- Table structure for table `laboratorio`
---
+-- Ajustado para incluir coluna `descricao` (alinhado ao backend) e facilitar metadados.
 
 CREATE TABLE `laboratorio` (
   `id_Laboratorio` int(11) NOT NULL,
-  `numero` varchar(30) NOT NULL
+  `numero` varchar(30) NOT NULL,
+  `descricao` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `laboratorio`
 --
 
-INSERT INTO `laboratorio` (`id_Laboratorio`, `numero`) VALUES
-(2, 'lab1'),
-(3, 'lab2'),
-(4, 'lab3'),
-(5, 'lab4'),
-(6, 'auditorio');
+INSERT INTO `laboratorio` (`id_Laboratorio`, `numero`, `descricao`) VALUES
+(1, 'lab5', 'Laboratório 5'),
+(2, 'lab1', 'Laboratório 1'),
+(3, 'lab2', 'Laboratório 2'),
+(4, 'lab3', 'Laboratório 3'),
+(5, 'lab4', 'Laboratório 4'),
+(6, 'auditorio', 'Auditório Principal');
 
 -- --------------------------------------------------------
 
@@ -123,7 +125,8 @@ ALTER TABLE `horarios_fixos`
 -- Indexes for table `laboratorio`
 --
 ALTER TABLE `laboratorio`
-  ADD PRIMARY KEY (`id_Laboratorio`);
+  ADD PRIMARY KEY (`id_Laboratorio`),
+  ADD UNIQUE KEY `uq_laboratorio_numero` (`numero`);
 
 --
 -- Indexes for table `reserva`
@@ -226,3 +229,7 @@ CREATE TABLE professor_disciplina (
 
 -- Relaciona reserva ao id_disciplina via fk_aulas
 ALTER TABLE reserva ADD CONSTRAINT reserva_ibfk_3 FOREIGN KEY (fk_aulas) REFERENCES disciplina(id_disciplina);
+
+-- Inserção de admin padrão
+INSERT INTO usuarios (nome, cargo, email, senha) VALUES
+('Admin', 'Auxiliar_Docente', 'admin@etec.com', '$2b$10$UdxgxQJr7N2iqNXsiq0Up.lf0hAhM/qSOS1Ma558sa44bhjaTYVBe');
