@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getApiBaseUrl } from '@/lib/api';
@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import Nav from '@/components/nav';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 interface Lab {
   id_Laboratorio: number;
@@ -370,220 +371,225 @@ export default function AgendamentoPage() {
   };
 
   return (
-    <View className='flex-1 bg-black'>
-      <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 104 }}>
-        {/* background image */}
-        <View style={{ width: '100%', height: '13%', position: 'absolute', top: 0, left: 0 }}>
-          <Image source={require('../assets/images/bg2.jpg')} style={{ width: '100%', height: '100%' }} />
-        </View>
-
-        {/* Voltar */}
-        <Link href="/" className='flex-1 flex-row items-center h-full p-16 z-10'>
-          <Ionicons name="arrow-back" size={16} color="white" />
-          <Text className='color-white text-xl font-poppins ml-2'>Voltar</Text>
-        </Link>
-
-        {/* Tabs */}
-        {/* <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
-          <TouchableOpacity
-            className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selectedTab === 'professores' ? 'bg-[#3B96E2]' : ''}`}
-            onPress={() => setSelectedTab('professores')}
-          >
-            <Text className={`font-poppins ${selectedTab === 'professores' ? 'color-white' : ''}`}>Professores</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selectedTab === 'organizacao' ? 'bg-[#3B96E2]' : ''}`}
-            onPress={() => setSelectedTab('organizacao')}
-          >
-            <Text className={`font-poppins ${selectedTab === 'organizacao' ? 'color-white' : ''}`}>Organização</Text>
-          </TouchableOpacity>
-        </View> */}
-
-        {/* Calendário */}
-        <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <TouchableOpacity onPress={goPrevMonth}>
-              <Ionicons name="chevron-back" size={20} color="#fff" />
-            </TouchableOpacity>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textTransform: 'capitalize' }}>{monthLabel}</Text>
-            <TouchableOpacity onPress={goNextMonth}>
-              <Ionicons name="chevron-forward" size={20} color="#fff" />
-            </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
+      <View className='flex-1 bg-black'>
+        <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 104 }}>
+          {/* background image */}
+          <View style={{ width: '100%', height: '13%', position: 'absolute', top: 0, left: 0 }}>
+            <Image source={require('../assets/images/bg2.jpg')} style={{ width: '100%', height: '100%' }} />
           </View>
 
-          {/* Cabeçalho dias da semana */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            {WEEK_LABELS.map((w) => (
-              <Text key={w} style={{ color: '#9CA3AF', width: `${100 / 7}%`, textAlign: 'center' }}>{w}</Text>
-            ))}
+          {/* Voltar */}
+          <Link href="/" className='flex-1 flex-row items-center h-full p-16 z-10'>
+            <Ionicons name="arrow-back" size={16} color="white" />
+            <Text className='color-white text-xl font-poppins ml-2'>Voltar</Text>
+          </Link>
+
+          {/* Tabs */}
+          {/* <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
+            <TouchableOpacity
+              className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selectedTab === 'professores' ? 'bg-[#3B96E2]' : ''}`}
+              onPress={() => setSelectedTab('professores')}
+            >
+              <Text className={`font-poppins ${selectedTab === 'professores' ? 'color-white' : ''}`}>Professores</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className={`w-[50%] h-8 flex items-center justify-center rounded-full ${selectedTab === 'organizacao' ? 'bg-[#3B96E2]' : ''}`}
+              onPress={() => setSelectedTab('organizacao')}
+            >
+              <Text className={`font-poppins ${selectedTab === 'organizacao' ? 'color-white' : ''}`}>Organização</Text>
+            </TouchableOpacity>
+          </View> */}
+
+          {/* Calendário */}
+          <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <TouchableOpacity onPress={goPrevMonth}>
+                <Ionicons name="chevron-back" size={20} color="#fff" />
+              </TouchableOpacity>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textTransform: 'capitalize' }}>{monthLabel}</Text>
+              <TouchableOpacity onPress={goNextMonth}>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Cabeçalho dias da semana */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+              {WEEK_LABELS.map((w) => (
+                <Text key={w} style={{ color: '#9CA3AF', width: `${100 / 7}%`, textAlign: 'center' }}>{w}</Text>
+              ))}
+            </View>
+            {/* Grade de dias */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {monthGrid.map(({ date, key }, i) => {
+                if (!date) return <View key={key} style={{ width: `${100 / 7}%`, height: 40 }} />;
+                const isSelected = sameYMD(date, selectedDate);
+                const isToday = sameYMD(date, new Date());
+                const ymd = formatYMD(date);
+                const hasReserva = reservas.some((r) => toYMD((r as any).dia) === ymd) || (function(){
+                  const ds = ymdToDiaSemana(ymd);
+                  return (fixos || []).some((f) => String(f.dia_semana).toLowerCase() === ds);
+                })();
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => setSelectedDate(date)}
+                    style={{
+                      width: `${100 / 7}%`,
+                      height: 40,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 8,
+                      marginVertical: 2,
+                      backgroundColor: isSelected ? '#1C4AED' : 'transparent',
+                    }}
+                  >
+                    <Text style={{ color: isSelected ? '#fff' : '#E5E7EB', fontWeight: isToday ? 'bold' as const : 'normal' }}>
+                      {date.getDate()}
+                    </Text>
+                    {hasReserva ? (
+                      <View style={{ width: 6, height: 6, backgroundColor: '#3B96E2', borderRadius: 3, marginTop: 2 }} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-          {/* Grade de dias */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            {monthGrid.map(({ date, key }, i) => {
-              if (!date) return <View key={key} style={{ width: `${100 / 7}%`, height: 40 }} />;
-              const isSelected = sameYMD(date, selectedDate);
-              const isToday = sameYMD(date, new Date());
-              const ymd = formatYMD(date);
-              const hasReserva = reservas.some((r) => toYMD((r as any).dia) === ymd) || (function(){
-                const ds = ymdToDiaSemana(ymd);
-                return (fixos || []).some((f) => String(f.dia_semana).toLowerCase() === ds);
-              })();
+
+          {/* Lista de Laboratórios */}
+          <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+            {errorMsg ? (
+              <Text className='text-red-400 text-center mt-4'>{errorMsg}</Text>
+            ) : null}
+            {labs.map((lab) => {
+              const count = reservasDoDia.filter((r) => r.id_Laboratorio === lab.id_Laboratorio).length;
+              const percent = Math.round((count / maxOcupacao) * 100);
               return (
-                <TouchableOpacity
-                  key={key}
-                  onPress={() => setSelectedDate(date)}
-                  style={{
-                    width: `${100 / 7}%`,
-                    height: 40,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 8,
-                    marginVertical: 2,
-                    backgroundColor: isSelected ? '#1C4AED' : 'transparent',
-                  }}
-                >
-                  <Text style={{ color: isSelected ? '#fff' : '#E5E7EB', fontWeight: isToday ? 'bold' as const : 'normal' }}>
-                    {date.getDate()}
-                  </Text>
-                  {hasReserva ? (
-                    <View style={{ width: 6, height: 6, backgroundColor: '#3B96E2', borderRadius: 3, marginTop: 2 }} />
-                  ) : null}
-                </TouchableOpacity>
+                <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Laboratório {lab.numero}</Text>
+                      <Text style={{ color: '#9CA3AF', marginTop: 4 }}>{count} agendamentos no dia</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => onAgendar(lab)} style={{ backgroundColor: '#3B96E2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
+                      <Text style={{ color: 'white', fontWeight: '600' }}>Agendar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Barra de uso relativa */}
+                  <View style={{ height: 6, backgroundColor: '#1F2937', borderRadius: 8, marginTop: 12, overflow: 'hidden' }}>
+                    <View style={{ width: `${percent}%`, height: '100%', backgroundColor: percent > 66 ? '#EF4444' : percent > 33 ? '#F59E0B' : '#10B981' }} />
+                  </View>
+                </View>
               );
             })}
           </View>
-        </View>
 
-        {/* Lista de Laboratórios */}
-        <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
-          {errorMsg ? (
-            <Text className='text-red-400 text-center mt-4'>{errorMsg}</Text>
-          ) : null}
-          {labs.map((lab) => {
-            const count = reservasDoDia.filter((r) => r.id_Laboratorio === lab.id_Laboratorio).length;
-            const percent = Math.round((count / maxOcupacao) * 100);
-            return (
-              <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
-                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Laboratório {lab.numero}</Text>
-                    <Text style={{ color: '#9CA3AF', marginTop: 4 }}>{count} agendamentos no dia</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => onAgendar(lab)} style={{ backgroundColor: '#3B96E2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>Agendar</Text>
+          {/* Meus Agendamentos */}
+          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Meus Agendamentos</Text>
+            {meusAgendamentos.length === 0 ? (
+              <Text style={{ color: '#9CA3AF' }}>Você não possui agendamentos neste dia.</Text>
+            ) : (
+              meusAgendamentos.map((a, idx) => {
+                const start = (a.horario || '').slice(0, 5);
+                const end = start ? addMinutesHHmm(start, 50) : '';
+                const timeRange = start && end ? `${start} - ${end}` : start ? `${start}` : '';
+                const gradients = [
+                  ['#1C4AED', '#7C3AED'],
+                  ['#2563EB', '#1C4AED'],
+                  ['#0EA5E9', '#2563EB'],
+                ] as const;
+                const colors = gradients[idx % gradients.length] as readonly [string, string];
+                const isFixo = !!a.isFixo;
+                const canDelete = isFixo ? isAuxCoord : true;
+                return (
+                  <LinearGradient
+                    key={`${a.id_Reserva}`}
+                    colors={colors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ borderRadius: 16, padding: 16, marginBottom: 12 }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1, paddingRight: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {a.numero_laboratorio}</Text>
+                          {isFixo ? (
+                            <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                              <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={{ color: '#E5E7EB', marginTop: 4 }} numberOfLines={2}>
+                          {isFixo ? 'Horário fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento')}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity onPress={() => openEdit(a)} disabled={isFixo} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: isFixo ? 0.4 : 1 }}>
+                          <Ionicons name="create-outline" size={16} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => openDelete(a)} disabled={!canDelete} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: !canDelete ? 0.4 : 1 }}>
+                          <Ionicons name="trash-outline" size={16} color="#fff" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12 }}>
+                      <Ionicons name="time-outline" size={14} color="#fff" />
+                      <Text style={{ color: '#fff', marginLeft: 6 }}>{timeRange} {timeRange && 'h'}</Text>
+                    </View>
+                  </LinearGradient>
+                );
+              })
+            )}
+          </View>
+
+          {/* Modal Editar Justificativa */}
+          <Modal visible={editModalVisible} animationType="fade" transparent onRequestClose={closeModals}>
+            <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <View style={{ width: '100%', backgroundColor: '#0F1115', borderRadius: 16, padding: 16 }}>
+                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 8 }}>Editar justificativa</Text>
+                <TextInput
+                  placeholder="Ex: Desenvolvimento de Sistemas"
+                  placeholderTextColor="#9CA3AF"
+                  value={editJustificativa}
+                  onChangeText={setEditJustificativa}
+                  style={{ backgroundColor: '#111827', color: 'white', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#1F2937' }}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <TouchableOpacity onPress={closeModals} style={{ paddingVertical: 10, paddingHorizontal: 14, marginRight: 8 }}>
+                    <Text style={{ color: '#9CA3AF' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={confirmEdit} disabled={savingEdit} style={{ backgroundColor: '#3B96E2', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: savingEdit ? 0.7 : 1 }}>
+                    {savingEdit ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>Salvar</Text>}
                   </TouchableOpacity>
                 </View>
-                {/* Barra de uso relativa */}
-                <View style={{ height: 6, backgroundColor: '#1F2937', borderRadius: 8, marginTop: 12, overflow: 'hidden' }}>
-                  <View style={{ width: `${percent}%`, height: '100%', backgroundColor: percent > 66 ? '#EF4444' : percent > 33 ? '#F59E0B' : '#10B981' }} />
+              </View>
+            </View>
+          </Modal>
+
+          {/* Modal Confirmar Exclusão */}
+          <Modal visible={deleteModalVisible} animationType="fade" transparent onRequestClose={closeModals}>
+            <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+              <View style={{ width: '100%', backgroundColor: '#0F1115', borderRadius: 16, padding: 16 }}>
+                <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{selectedReserva?.isFixo ? 'Remover horário fixo' : 'Remover agendamento'}</Text>
+                <Text style={{ color: '#9CA3AF' }}>Tem certeza que deseja excluir {selectedReserva?.isFixo ? 'este horário fixo' : 'este agendamento'}?</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <TouchableOpacity onPress={closeModals} style={{ paddingVertical: 10, paddingHorizontal: 14, marginRight: 8 }}>
+                    <Text style={{ color: '#9CA3AF' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={{ backgroundColor: selectedReserva?.isFixo ? '#B91C1C' : '#EF4444', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: deleting ? 0.7 : 1 }}>
+                    {deleting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>{selectedReserva?.isFixo ? 'Remover fixo' : 'Excluir'}</Text>}
+                  </TouchableOpacity>
                 </View>
               </View>
-            );
-          })}
-        </View>
-
-        {/* Meus Agendamentos */}
-        <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
-          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Meus Agendamentos</Text>
-          {meusAgendamentos.length === 0 ? (
-            <Text style={{ color: '#9CA3AF' }}>Você não possui agendamentos neste dia.</Text>
-          ) : (
-            meusAgendamentos.map((a, idx) => {
-              const start = (a.horario || '').slice(0, 5);
-              const end = start ? addMinutesHHmm(start, 50) : '';
-              const timeRange = start && end ? `${start} - ${end}` : start ? `${start}` : '';
-              const gradients = [
-                ['#1C4AED', '#7C3AED'],
-                ['#2563EB', '#1C4AED'],
-                ['#0EA5E9', '#2563EB'],
-              ] as const;
-              const colors = gradients[idx % gradients.length] as readonly [string, string];
-              const isFixo = !!a.isFixo;
-              const canDelete = isFixo ? isAuxCoord : true;
-              return (
-                <LinearGradient
-                  key={`${a.id_Reserva}`}
-                  colors={colors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 16, padding: 16, marginBottom: 12 }}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <View style={{ flex: 1, paddingRight: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {a.numero_laboratorio}</Text>
-                        {isFixo ? (
-                          <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                            <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>
-                          </View>
-                        ) : null}
-                      </View>
-                      <Text style={{ color: '#E5E7EB', marginTop: 4 }} numberOfLines={2}>
-                        {isFixo ? 'Horário fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento')}
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <TouchableOpacity onPress={() => openEdit(a)} disabled={isFixo} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: isFixo ? 0.4 : 1 }}>
-                        <Ionicons name="create-outline" size={16} color="#fff" />
-                      </TouchableOpacity>
-                      <TouchableOpacity onPress={() => openDelete(a)} disabled={!canDelete} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: !canDelete ? 0.4 : 1 }}>
-                        <Ionicons name="trash-outline" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12 }}>
-                    <Ionicons name="time-outline" size={14} color="#fff" />
-                    <Text style={{ color: '#fff', marginLeft: 6 }}>{timeRange} {timeRange && 'h'}</Text>
-                  </View>
-                </LinearGradient>
-              );
-            })
-          )}
-        </View>
-
-        {/* Modal Editar Justificativa */}
-        <Modal visible={editModalVisible} animationType="fade" transparent onRequestClose={closeModals}>
-          <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <View style={{ width: '100%', backgroundColor: '#0F1115', borderRadius: 16, padding: 16 }}>
-              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 8 }}>Editar justificativa</Text>
-              <TextInput
-                placeholder="Ex: Desenvolvimento de Sistemas"
-                placeholderTextColor="#9CA3AF"
-                value={editJustificativa}
-                onChangeText={setEditJustificativa}
-                style={{ backgroundColor: '#111827', color: 'white', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#1F2937' }}
-              />
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-                <TouchableOpacity onPress={closeModals} style={{ paddingVertical: 10, paddingHorizontal: 14, marginRight: 8 }}>
-                  <Text style={{ color: '#9CA3AF' }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={confirmEdit} disabled={savingEdit} style={{ backgroundColor: '#3B96E2', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: savingEdit ? 0.7 : 1 }}>
-                  {savingEdit ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>Salvar</Text>}
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
-        </Modal>
-
-        {/* Modal Confirmar Exclusão */}
-        <Modal visible={deleteModalVisible} animationType="fade" transparent onRequestClose={closeModals}>
-          <View style={{ flex: 1, backgroundColor: '#00000088', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-            <View style={{ width: '100%', backgroundColor: '#0F1115', borderRadius: 16, padding: 16 }}>
-              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16, marginBottom: 4 }}>{selectedReserva?.isFixo ? 'Remover horário fixo' : 'Remover agendamento'}</Text>
-              <Text style={{ color: '#9CA3AF' }}>Tem certeza que deseja excluir {selectedReserva?.isFixo ? 'este horário fixo' : 'este agendamento'}?</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-                <TouchableOpacity onPress={closeModals} style={{ paddingVertical: 10, paddingHorizontal: 14, marginRight: 8 }}>
-                  <Text style={{ color: '#9CA3AF' }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={confirmDelete} disabled={deleting} style={{ backgroundColor: selectedReserva?.isFixo ? '#B91C1C' : '#EF4444', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, opacity: deleting ? 0.7 : 1 }}>
-                  {deleting ? <ActivityIndicator color="#fff" /> : <Text style={{ color: 'white', fontWeight: '600' }}>{selectedReserva?.isFixo ? 'Remover fixo' : 'Excluir'}</Text>}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      </ScrollView>
-      <Nav active="agendamento" />
-    </View>
+          </Modal>
+        </ScrollView>
+        <Nav active="agendamento" />
+      </View>
+    </SafeAreaView>
   );
 }

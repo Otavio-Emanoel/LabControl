@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -8,6 +8,7 @@ import { captureRef } from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 // Slots fixos (alinhar com backend)
 const SLOTS = [
@@ -359,269 +360,274 @@ export default function AgendamentosDiaPage() {
   }, [selectedRes, editJustText, load]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
-        </TouchableOpacity>
-        <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginLeft: 8, flex: 1 }}>
-          Agendamentos de {weekday && `${weekday}, `}{ymd}
-        </Text>
-        <TouchableOpacity onPress={exportToPng} disabled={exporting} style={{ padding: 8, opacity: exporting ? 0.6 : 1 }}>
-          {exporting ? (
-            <ActivityIndicator size="small" color="#3B96E2" />
-          ) : (
-            <Ionicons name="download-outline" size={20} color="#fff" />
-          )}
-        </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
       </View>
-
-      {loading ? (
-        <View style={{ paddingVertical: 16 }}>
-          <ActivityIndicator size="small" color="#3B96E2" />
+      <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginLeft: 8, flex: 1 }}>
+            Agendamentos de {weekday && `${weekday}, `}{ymd}
+          </Text>
+          <TouchableOpacity onPress={exportToPng} disabled={exporting} style={{ padding: 8, opacity: exporting ? 0.6 : 1 }}>
+            {exporting ? (
+              <ActivityIndicator size="small" color="#3B96E2" />
+            ) : (
+              <Ionicons name="download-outline" size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
         </View>
-      ) : null}
 
-      {errorMsg ? (
-        <Text style={{ color: '#F87171', marginTop: 8, textAlign: 'center' }}>{errorMsg}</Text>
-      ) : null}
+        {loading ? (
+          <View style={{ paddingVertical: 16 }}>
+            <ActivityIndicator size="small" color="#3B96E2" />
+          </View>
+        ) : null}
 
-      {/* Container da tabela (visível) */}
-      <View ref={visibleTableRef} style={{ marginTop: 12, marginHorizontal: 12, backgroundColor: '#0B0F19', borderRadius: 12, borderWidth: 1, borderColor: '#111827', overflow: 'hidden' }}>
-        {/* Cabeçalho + corpo enrolados horizontalmente juntos */}
-        <ScrollView horizontal nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator contentContainerStyle={{ paddingBottom: 12 }}>
-          <View>
-            {/* Cabeçalho: primeira célula vazia (horários) + colunas de laboratórios */}
+        {errorMsg ? (
+          <Text style={{ color: '#F87171', marginTop: 8, textAlign: 'center' }}>{errorMsg}</Text>
+        ) : null}
+
+        {/* Container da tabela (visível) */}
+        <View ref={visibleTableRef} style={{ marginTop: 12, marginHorizontal: 12, backgroundColor: '#0B0F19', borderRadius: 12, borderWidth: 1, borderColor: '#111827', overflow: 'hidden' }}>
+          {/* Cabeçalho + corpo enrolados horizontalmente juntos */}
+          <ScrollView horizontal nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator contentContainerStyle={{ paddingBottom: 12 }}>
+            <View>
+              {/* Cabeçalho: primeira célula vazia (horários) + colunas de laboratórios */}
+              <View style={{ flexDirection: 'row', backgroundColor: '#0F172A', borderBottomWidth: 1, borderBottomColor: '#111827' }}>
+                {/* canto vazio */}
+                <View style={{ width: 100, height: 48, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Horário</Text>
+                </View>
+                {labs.map((lab) => (
+                  <View
+                    key={lab.id_Laboratorio}
+                    style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}
+                  >
+                    <Text style={{ color: 'white', fontWeight: '700' }}>Lab {lab.numero}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Corpo com rolagem vertical */}
+              <ScrollView nestedScrollEnabled directionalLockEnabled showsVerticalScrollIndicator>
+                {SLOTS.map((slot, idx) => (
+                  <View key={slot.key} style={{ flexDirection: 'row' }}>
+                    {/* Coluna de horários */}
+                    <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
+                      <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
+                      <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
+                    </View>
+
+                    {/* Células por laboratório */}
+                    {labs.map((lab) => {
+                      const key = `${lab.id_Laboratorio}-${slot.start}`;
+                      const r = cellMap.get(key);
+                      const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
+                      return (
+                        <View key={key} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
+                          {r ? (
+                            <TouchableOpacity onPress={() => openReserva(r)} activeOpacity={0.8}>
+                              <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                                    <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
+                                  </View>
+                                  <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                                  {r.isFixo ? (
+                                    <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
+                                      <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                                <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
+                                  {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => askSchedule(lab.id_Laboratorio, lab.numero)}
+                              style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}
+                            >
+                              <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </ScrollView>
+
+          {/* Legenda */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, gap: 16, borderTopWidth: 1, borderTopColor: '#111827' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', marginRight: 6 }} />
+              <Text style={{ color: '#9CA3AF' }}>Livre</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', marginRight: 6 }} />
+              <Text style={{ color: '#9CA3AF' }}>Reservado</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Modal de confirmação */}
+        <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <View style={{ width: '92%', maxWidth: 420, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Agendar neste dia?</Text>
+              <Text style={{ color: '#9CA3AF', marginTop: 6 }}>
+                {`Você deseja agendar no dia ${ymd} para o Lab ${confirmLab?.numero ?? ''}?`}
+              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
+                <TouchableOpacity onPress={() => setConfirmVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
+                  <Text style={{ color: 'white' }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goToSchedule} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
+                  <Text style={{ color: 'white', fontWeight: '700' }}>Agendar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de detalhes da reserva */}
+        <Modal visible={resModalVisible} transparent animationType="fade" onRequestClose={() => setResModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <View style={{ width: '92%', maxWidth: 480, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Detalhes do agendamento</Text>
+              {selectedRes ? (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Professor: <Text style={{ color: 'white' }}>{selectedRes.nome_usuario}</Text></Text>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Tipo: <Text style={{ color: 'white' }}>{selectedRes.isFixo ? 'Horário fixo' : 'Reserva'}</Text></Text>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Disciplina: <Text style={{ color: 'white' }}>{selectedRes.nome_disciplina || '-'}</Text></Text>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Laboratório: <Text style={{ color: 'white' }}>Lab {selectedRes.numero_laboratorio}</Text></Text>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Dia: <Text style={{ color: 'white' }}>{toYMD(selectedRes.dia)}</Text></Text>
+                  <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Horário: <Text style={{ color: 'white' }}>{timeToHHmm(selectedRes.horario)}</Text></Text>
+
+                  {!selectedRes.isFixo && (
+                    <View style={{ marginTop: 10 }}>
+                      <Text style={{ color: '#9CA3AF' }}>Justificativa:</Text>
+                      {editJust ? (
+                        <TextInput
+                          value={editJustText}
+                          onChangeText={setEditJustText}
+                          placeholder="Justificativa"
+                          placeholderTextColor="#6B7280"
+                          multiline
+                          style={{ marginTop: 6, minHeight: 80, color: 'white', backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}
+                        />
+                      ) : (
+                        <View style={{ marginTop: 6, backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
+                          <Text style={{ color: 'white' }}>{selectedRes.justificativa || '-'}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16, alignItems: 'center' }}>
+                <TouchableOpacity onPress={() => setResModalVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
+                  <Text style={{ color: 'white' }}>Fechar</Text>
+                </TouchableOpacity>
+
+                {isAuxCoord && selectedRes?.isFixo ? (
+                  <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover fixo'}</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                {isAuxCoord && selectedRes && !selectedRes.isFixo ? (
+                  editJust ? (
+                    <TouchableOpacity onPress={salvarJustificativa} disabled={saving} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: saving ? '#274b6b' : '#3B96E2', opacity: saving ? 0.8 : 1 }}>
+                      <Text style={{ color: 'white', fontWeight: '700' }}>{saving ? 'Salvando...' : 'Salvar'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <>
+                      <TouchableOpacity onPress={() => setEditJust(true)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#2563EB' }}>
+                        <Text style={{ color: 'white', fontWeight: '700' }}>Editar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
+                        <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover'}</Text>
+                      </TouchableOpacity>
+                    </>
+                  )
+                ) : null}
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Versão offscreen para captura completa */}
+        {renderCapture && (
+          <View
+            ref={captureTableRef}
+            collapsable={false}
+            style={{ position: 'absolute', left: -9999, top: 0, backgroundColor: '#0B0F19' }}
+          >
+            {/* Cabeçalho */}
             <View style={{ flexDirection: 'row', backgroundColor: '#0F172A', borderBottomWidth: 1, borderBottomColor: '#111827' }}>
-              {/* canto vazio */}
               <View style={{ width: 100, height: 48, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Horário</Text>
               </View>
               {labs.map((lab) => (
-                <View
-                  key={lab.id_Laboratorio}
-                  style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}
-                >
+                <View key={`cap-${lab.id_Laboratorio}`} style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}>
                   <Text style={{ color: 'white', fontWeight: '700' }}>Lab {lab.numero}</Text>
                 </View>
               ))}
             </View>
-
-            {/* Corpo com rolagem vertical */}
-            <ScrollView nestedScrollEnabled directionalLockEnabled showsVerticalScrollIndicator>
-              {SLOTS.map((slot, idx) => (
-                <View key={slot.key} style={{ flexDirection: 'row' }}>
-                  {/* Coluna de horários */}
-                  <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
-                    <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
-                    <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
-                  </View>
-
-                  {/* Células por laboratório */}
-                  {labs.map((lab) => {
-                    const key = `${lab.id_Laboratorio}-${slot.start}`;
-                    const r = cellMap.get(key);
-                    const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
-                    return (
-                      <View key={key} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
-                        {r ? (
-                          <TouchableOpacity onPress={() => openReserva(r)} activeOpacity={0.8}>
-                            <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
-                                  <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
-                                </View>
-                                <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
-                                {r.isFixo ? (
-                                  <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
-                                    <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
-                                  </View>
-                                ) : null}
-                              </View>
-                              <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
-                                {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
-                              </Text>
-                            </View>
-                          </TouchableOpacity>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() => askSchedule(lab.id_Laboratorio, lab.numero)}
-                            style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}
-                          >
-                            <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    );
-                  })}
+            {/* Corpo completo sem scroll */}
+            {SLOTS.map((slot, idx) => (
+              <View key={`cap-row-${slot.key}`} style={{ flexDirection: 'row' }}>
+                <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
+                  <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
+                  <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
                 </View>
-              ))}
-            </ScrollView>
-          </View>
-        </ScrollView>
-
-        {/* Legenda */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, gap: 16, borderTopWidth: 1, borderTopColor: '#111827' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', marginRight: 6 }} />
-            <Text style={{ color: '#9CA3AF' }}>Livre</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', marginRight: 6 }} />
-            <Text style={{ color: '#9CA3AF' }}>Reservado</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Modal de confirmação */}
-      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <View style={{ width: '92%', maxWidth: 420, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
-            <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Agendar neste dia?</Text>
-            <Text style={{ color: '#9CA3AF', marginTop: 6 }}>
-              {`Você deseja agendar no dia ${ymd} para o Lab ${confirmLab?.numero ?? ''}?`}
-            </Text>
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity onPress={() => setConfirmVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
-                <Text style={{ color: 'white' }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goToSchedule} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#3B96E2' }}>
-                <Text style={{ color: 'white', fontWeight: '700' }}>Agendar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal de detalhes da reserva */}
-      <Modal visible={resModalVisible} transparent animationType="fade" onRequestClose={() => setResModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <View style={{ width: '92%', maxWidth: 480, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
-            <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Detalhes do agendamento</Text>
-            {selectedRes ? (
-              <View style={{ marginTop: 10 }}>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Professor: <Text style={{ color: 'white' }}>{selectedRes.nome_usuario}</Text></Text>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Tipo: <Text style={{ color: 'white' }}>{selectedRes.isFixo ? 'Horário fixo' : 'Reserva'}</Text></Text>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Disciplina: <Text style={{ color: 'white' }}>{selectedRes.nome_disciplina || '-'}</Text></Text>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Laboratório: <Text style={{ color: 'white' }}>Lab {selectedRes.numero_laboratorio}</Text></Text>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Dia: <Text style={{ color: 'white' }}>{toYMD(selectedRes.dia)}</Text></Text>
-                <Text style={{ color: '#9CA3AF', marginTop: 2 }}>Horário: <Text style={{ color: 'white' }}>{timeToHHmm(selectedRes.horario)}</Text></Text>
-
-                {!selectedRes.isFixo && (
-                  <View style={{ marginTop: 10 }}>
-                    <Text style={{ color: '#9CA3AF' }}>Justificativa:</Text>
-                    {editJust ? (
-                      <TextInput
-                        value={editJustText}
-                        onChangeText={setEditJustText}
-                        placeholder="Justificativa"
-                        placeholderTextColor="#6B7280"
-                        multiline
-                        style={{ marginTop: 6, minHeight: 80, color: 'white', backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}
-                      />
-                    ) : (
-                      <View style={{ marginTop: 6, backgroundColor: '#0B0F19', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
-                        <Text style={{ color: 'white' }}>{selectedRes.justificativa || '-'}</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            ) : null}
-
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16, alignItems: 'center' }}>
-              <TouchableOpacity onPress={() => setResModalVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
-                <Text style={{ color: 'white' }}>Fechar</Text>
-              </TouchableOpacity>
-
-              {isAuxCoord && selectedRes?.isFixo ? (
-                <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
-                  <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover fixo'}</Text>
-                </TouchableOpacity>
-              ) : null}
-
-              {isAuxCoord && selectedRes && !selectedRes.isFixo ? (
-                editJust ? (
-                  <TouchableOpacity onPress={salvarJustificativa} disabled={saving} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: saving ? '#274b6b' : '#3B96E2', opacity: saving ? 0.8 : 1 }}>
-                    <Text style={{ color: 'white', fontWeight: '700' }}>{saving ? 'Salvando...' : 'Salvar'}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <>
-                    <TouchableOpacity onPress={() => setEditJust(true)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#2563EB' }}>
-                      <Text style={{ color: 'white', fontWeight: '700' }}>Editar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={confirmarRemocao} disabled={deleting} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: deleting ? '#7f1d1d' : '#B91C1C', opacity: deleting ? 0.8 : 1 }}>
-                      <Text style={{ color: 'white', fontWeight: '700' }}>{deleting ? 'Removendo...' : 'Remover'}</Text>
-                    </TouchableOpacity>
-                  </>
-                )
-              ) : null}
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Versão offscreen para captura completa */}
-      {renderCapture && (
-        <View
-          ref={captureTableRef}
-          collapsable={false}
-          style={{ position: 'absolute', left: -9999, top: 0, backgroundColor: '#0B0F19' }}
-        >
-          {/* Cabeçalho */}
-          <View style={{ flexDirection: 'row', backgroundColor: '#0F172A', borderBottomWidth: 1, borderBottomColor: '#111827' }}>
-            <View style={{ width: 100, height: 48, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Horário</Text>
-            </View>
-            {labs.map((lab) => (
-              <View key={`cap-${lab.id_Laboratorio}`} style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}>
-                <Text style={{ color: 'white', fontWeight: '700' }}>Lab {lab.numero}</Text>
+                {labs.map((lab) => {
+                  const key = `${lab.id_Laboratorio}-${slot.start}`;
+                  const r = cellMap.get(key);
+                  const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
+                  return (
+                    <View key={`cap-cell-${key}`} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
+                      {r ? (
+                        <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                              <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
+                            </View>
+                            <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                            {r.isFixo ? (
+                              <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
+                                <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
+                            {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}>
+                          <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             ))}
           </View>
-          {/* Corpo completo sem scroll */}
-          {SLOTS.map((slot, idx) => (
-            <View key={`cap-row-${slot.key}`} style={{ flexDirection: 'row' }}>
-              <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
-                <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
-                <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
-              </View>
-              {labs.map((lab) => {
-                const key = `${lab.id_Laboratorio}-${slot.start}`;
-                const r = cellMap.get(key);
-                const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
-                return (
-                  <View key={`cap-cell-${key}`} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
-                    {r ? (
-                      <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                          <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
-                            <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
-                          </View>
-                          <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
-                          {r.isFixo ? (
-                            <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
-                              <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
-                          {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}>
-                        <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
-                      </View>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }

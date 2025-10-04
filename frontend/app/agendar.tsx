@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Nav from '@/components/nav';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 // Slots fixos
 const SLOTS = [
@@ -370,6 +371,10 @@ export default function AgendarLabPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black', paddingTop: Math.max(insets.top, 12) }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
+
       <ScrollView className="flex-1 bg-black" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 96 }}>
         {/* Voltar */}
         <Link href="/agendamento" className='flex-1 flex-row items-center h-full p-4 z-10'>

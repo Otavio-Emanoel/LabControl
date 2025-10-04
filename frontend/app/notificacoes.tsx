@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Nav from '../components/nav';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useFocusEffect } from '@react-navigation/native';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 interface Notificacao {
   id_notificacao: number;
@@ -102,7 +103,10 @@ export default function NotificacoesScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
       <View style={{ paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
           <Ionicons name="chevron-back" size={24} color="white" />
@@ -136,6 +140,6 @@ export default function NotificacoesScreen() {
       )}
 
       <Nav active="notificacoes" />
-    </View>
+    </SafeAreaView>
   );
 }

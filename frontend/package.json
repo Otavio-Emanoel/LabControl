@@ -18,7 +18,7 @@
     "@react-navigation/native": "^7.1.6",
     "axios": "^1.11.0",
     "dotenv": "^17.2.1",
-    "expo": "^54.0.7",
+    "expo": "54.0.12",
     "expo-blur": "~15.0.7",
     "expo-constants": "~18.0.8",
     "expo-font": "~14.0.8",
@@ -26,7 +26,7 @@
     "expo-image": "~3.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-linking": "~8.0.8",
-    "expo-media-library": "~18.1.1",
+    "expo-media-library": "~18.2.0",
     "expo-router": "~6.0.4",
     "expo-sharing": "~14.0.7",
     "expo-splash-screen": "~31.0.10",
@@ -48,12 +48,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@types/react": "~19.0.10",
+    "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
-    "eslint-config-expo": "~9.2.0",
+    "eslint-config-expo": "~10.0.0",
     "prettier-plugin-tailwindcss": "0.5.11",
     "tailwindcss": "3.4.17",
-    "typescript": "~5.8.3"
+    "typescript": "~5.9.2"
   },
   "private": true
 }

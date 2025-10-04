@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 // Tipos
 interface Lab { id_Laboratorio: number; numero: string; }
@@ -177,145 +178,151 @@ export default function TornarFixoScreen() {
   }
 
   return (
-    <View className="flex-1 bg-black">
-      {/* Topo */}
-      <View className="px-6 pt-16">
-        <View className="flex-row items-center mb-4">
-          <TouchableOpacity onPress={() => router.back()} className="mr-2">
-            <Ionicons name="chevron-back" size={28} color="#fff" />
-          </TouchableOpacity>
-          <Text className="text-white text-2xl font-bold">Horários fixos</Text>
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
       </View>
 
-      {loadingPage ? (
-        <View className="flex-1 items-center justify-center"><ActivityIndicator color="#fff" /></View>
-      ) : (
-        <ScrollView className="px-6" contentContainerStyle={{ paddingBottom: 140 }}>
-          {/* Formulário estilo agendamento */}
-          <View className="bg-[#0B1220] border border-[#111827] rounded-2xl p-4 mt-2">
-            <Text className="text-white font-semibold mb-3">Criar horário fixo</Text>
-            {/* Dia da semana */}
-            <Text className="text-white/70 mb-2">Dia da semana</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {WEEKDAYS.map(d => (
-                <TouchableOpacity key={d.value} onPress={() => setWeekday(d.value)} className={`px-3 py-2 rounded-full ${weekday===d.value? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
-                  <Text className={weekday===d.value? 'text-white':'text-white/80'}>{d.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Horário */}
-            <Text className="text-white/70 mt-4 mb-2">Horário</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {TIMES.map(h => (
-                <TouchableOpacity key={h} onPress={() => setTime(h)} className={`px-3 py-2 rounded-full ${time===h? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
-                  <Text className={time===h? 'text-white':'text-white/80'}>{tlabel(h)}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Laboratório */}
-            <Text className="text-white/70 mt-4 mb-2">Laboratório</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {labs.map(l => (
-                <TouchableOpacity key={l.id_Laboratorio} onPress={() => setLabId(l.id_Laboratorio)} className={`px-3 py-2 rounded-full ${labId===l.id_Laboratorio? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
-                  <Text className={labId===l.id_Laboratorio? 'text-white':'text-white/80'}>Lab {l.numero}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Professor */}
-            <Text className="text-white/70 mt-4 mb-2">Professor</Text>
-            <View className="bg-[#0F172A] rounded-xl p-3 border border-[#111827]">
-              <TextInput
-                placeholder="Buscar professor"
-                placeholderTextColor="#9CA3AF"
-                value={profQuery}
-                onChangeText={setProfQuery}
-                className="text-white mb-2"
-              />
-              <View className="max-h-56">
-                <ScrollView>
-                  {filteredProfs.map(p => (
-                    <TouchableOpacity key={p.id_usuario} onPress={() => setProfId(p.id_usuario)} className={`px-3 py-2 rounded-lg mb-2 ${profId===p.id_usuario? 'bg-[#1C4AED]':'bg-[#111827]'}`}>
-                      <Text className={profId===p.id_usuario? 'text-white':'text-white/80'}>{p.nome}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </View>
-
-            {/* Disciplina (opcional) */}
-            <Text className="text-white/70 mt-4 mb-2">Disciplina (opcional)</Text>
-            <View className="bg-[#0F172A] rounded-xl p-3 border border-[#111827]">
-              <TextInput
-                placeholder={profId ? 'Buscar disciplina' : 'Selecione um professor primeiro'}
-                editable={!!profId}
-                placeholderTextColor="#9CA3AF"
-                value={discQuery}
-                onChangeText={setDiscQuery}
-                className="text-white mb-2"
-              />
-              <View className="max-h-56">
-                <ScrollView>
-                  {(!profId) ? (
-                    <Text className="text-white/50">Escolha um professor para listar as disciplinas vinculadas.</Text>
-                  ) : (
-                    filteredDiscs.map(d => {
-                      const curso = cursos.find(c => c.id_curso === (d.id_curso as any));
-                      return (
-                        <TouchableOpacity key={d.id_disciplina} onPress={() => setDiscId(d.id_disciplina)} className={`px-3 py-2 rounded-lg mb-2 ${discId===d.id_disciplina? 'bg-[#1C4AED]':'bg-[#111827]'}`}>
-                          <Text className={discId===d.id_disciplina? 'text-white':'text-white/80'}>
-                            {d.nome}{curso ? ` · ${curso.nome}` : ''}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                </ScrollView>
-              </View>
-              {discId && profId && !isLinked(profId, discId) ? (
-                <Text className="text-red-400 mt-1">Professor não vinculado à disciplina selecionada.</Text>
-              ) : null}
-            </View>
-
-            {/* Ação */}
-            <TouchableOpacity disabled={saving} onPress={criarFixo} className="mt-4 self-start bg-[#1C4AED] rounded-xl px-5 py-3">
-              <Text className="text-white font-semibold">{saving? 'Salvando...':'Criar horário fixo'}</Text>
+      <View className="flex-1 bg-black">
+        {/* Topo */}
+        <View className="px-6 pt-16">
+          <View className="flex-row items-center mb-4">
+            <TouchableOpacity onPress={() => router.back()} className="mr-2">
+              <Ionicons name="chevron-back" size={28} color="#fff" />
             </TouchableOpacity>
+            <Text className="text-white text-2xl font-bold">Horários fixos</Text>
           </View>
+        </View>
 
-          {/* Lista de fixos existentes (filtrada) */}
-          <View className="mt-6">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-white font-semibold text-lg">Fixos existentes</Text>
-              <Text className="text-white/60 text-xs">{fixosFiltrados.length} itens</Text>
+        {loadingPage ? (
+          <View className="flex-1 items-center justify-center"><ActivityIndicator color="#fff" /></View>
+        ) : (
+          <ScrollView className="px-6" contentContainerStyle={{ paddingBottom: 140 }}>
+            {/* Formulário estilo agendamento */}
+            <View className="bg-[#0B1220] border border-[#111827] rounded-2xl p-4 mt-2">
+              <Text className="text-white font-semibold mb-3">Criar horário fixo</Text>
+              {/* Dia da semana */}
+              <Text className="text-white/70 mb-2">Dia da semana</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {WEEKDAYS.map(d => (
+                  <TouchableOpacity key={d.value} onPress={() => setWeekday(d.value)} className={`px-3 py-2 rounded-full ${weekday===d.value? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
+                    <Text className={weekday===d.value? 'text-white':'text-white/80'}>{d.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Horário */}
+              <Text className="text-white/70 mt-4 mb-2">Horário</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {TIMES.map(h => (
+                  <TouchableOpacity key={h} onPress={() => setTime(h)} className={`px-3 py-2 rounded-full ${time===h? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
+                    <Text className={time===h? 'text-white':'text-white/80'}>{tlabel(h)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Laboratório */}
+              <Text className="text-white/70 mt-4 mb-2">Laboratório</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {labs.map(l => (
+                  <TouchableOpacity key={l.id_Laboratorio} onPress={() => setLabId(l.id_Laboratorio)} className={`px-3 py-2 rounded-full ${labId===l.id_Laboratorio? 'bg-[#1C4AED]':'bg-[#1F2937]'}`}>
+                    <Text className={labId===l.id_Laboratorio? 'text-white':'text-white/80'}>Lab {l.numero}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Professor */}
+              <Text className="text-white/70 mt-4 mb-2">Professor</Text>
+              <View className="bg-[#0F172A] rounded-xl p-3 border border-[#111827]">
+                <TextInput
+                  placeholder="Buscar professor"
+                  placeholderTextColor="#9CA3AF"
+                  value={profQuery}
+                  onChangeText={setProfQuery}
+                  className="text-white mb-2"
+                />
+                <View className="max-h-56">
+                  <ScrollView>
+                    {filteredProfs.map(p => (
+                      <TouchableOpacity key={p.id_usuario} onPress={() => setProfId(p.id_usuario)} className={`px-3 py-2 rounded-lg mb-2 ${profId===p.id_usuario? 'bg-[#1C4AED]':'bg-[#111827]'}`}>
+                        <Text className={profId===p.id_usuario? 'text-white':'text-white/80'}>{p.nome}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </View>
+
+              {/* Disciplina (opcional) */}
+              <Text className="text-white/70 mt-4 mb-2">Disciplina (opcional)</Text>
+              <View className="bg-[#0F172A] rounded-xl p-3 border border-[#111827]">
+                <TextInput
+                  placeholder={profId ? 'Buscar disciplina' : 'Selecione um professor primeiro'}
+                  editable={!!profId}
+                  placeholderTextColor="#9CA3AF"
+                  value={discQuery}
+                  onChangeText={setDiscQuery}
+                  className="text-white mb-2"
+                />
+                <View className="max-h-56">
+                  <ScrollView>
+                    {(!profId) ? (
+                      <Text className="text-white/50">Escolha um professor para listar as disciplinas vinculadas.</Text>
+                    ) : (
+                      filteredDiscs.map(d => {
+                        const curso = cursos.find(c => c.id_curso === (d.id_curso as any));
+                        return (
+                          <TouchableOpacity key={d.id_disciplina} onPress={() => setDiscId(d.id_disciplina)} className={`px-3 py-2 rounded-lg mb-2 ${discId===d.id_disciplina? 'bg-[#1C4AED]':'bg-[#111827]'}`}>
+                            <Text className={discId===d.id_disciplina? 'text-white':'text-white/80'}>
+                              {d.nome}{curso ? ` · ${curso.nome}` : ''}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </View>
+                {discId && profId && !isLinked(profId, discId) ? (
+                  <Text className="text-red-400 mt-1">Professor não vinculado à disciplina selecionada.</Text>
+                ) : null}
+              </View>
+
+              {/* Ação */}
+              <TouchableOpacity disabled={saving} onPress={criarFixo} className="mt-4 self-start bg-[#1C4AED] rounded-xl px-5 py-3">
+                <Text className="text-white font-semibold">{saving? 'Salvando...':'Criar horário fixo'}</Text>
+              </TouchableOpacity>
             </View>
 
-            {fixosFiltrados.length === 0 ? (
-              <Text className="text-white/60">Nenhum horário fixo para os filtros selecionados.</Text>
-            ) : (
-              fixosFiltrados.map(f => (
-                <View key={f.id_horario_fixo} className="bg-[#0B1220] border border-[#111827] rounded-2xl p-4 mb-3">
-                  <View className="flex-row items-center">
-                    <View className="w-9 h-9 rounded-full bg-[#1F2937] items-center justify-center mr-3">
-                      <Ionicons name="time-outline" size={18} color="#93C5FD" />
+            {/* Lista de fixos existentes (filtrada) */}
+            <View className="mt-6">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-white font-semibold text-lg">Fixos existentes</Text>
+                <Text className="text-white/60 text-xs">{fixosFiltrados.length} itens</Text>
+              </View>
+
+              {fixosFiltrados.length === 0 ? (
+                <Text className="text-white/60">Nenhum horário fixo para os filtros selecionados.</Text>
+              ) : (
+                fixosFiltrados.map(f => (
+                  <View key={f.id_horario_fixo} className="bg-[#0B1220] border border-[#111827] rounded-2xl p-4 mb-3">
+                    <View className="flex-row items-center">
+                      <View className="w-9 h-9 rounded-full bg-[#1F2937] items-center justify-center mr-3">
+                        <Ionicons name="time-outline" size={18} color="#93C5FD" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-white font-semibold capitalize">{f.dia_semana} • {tlabel(f.horario)}</Text>
+                        <Text className="text-white/70 text-xs">Lab {f.nome_laboratorio} • {f.nome_usuario}</Text>
+                      </View>
+                      <TouchableOpacity disabled={deleting===f.id_horario_fixo} onPress={() => removerFixo(f.id_horario_fixo)} className="px-3 py-2 rounded-lg bg-red-600/80">
+                        <Text className="text-white text-xs">{deleting===f.id_horario_fixo? 'Removendo...':'Remover'}</Text>
+                      </TouchableOpacity>
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-white font-semibold capitalize">{f.dia_semana} • {tlabel(f.horario)}</Text>
-                      <Text className="text-white/70 text-xs">Lab {f.nome_laboratorio} • {f.nome_usuario}</Text>
-                    </View>
-                    <TouchableOpacity disabled={deleting===f.id_horario_fixo} onPress={() => removerFixo(f.id_horario_fixo)} className="px-3 py-2 rounded-lg bg-red-600/80">
-                      <Text className="text-white text-xs">{deleting===f.id_horario_fixo? 'Removendo...':'Remover'}</Text>
-                    </TouchableOpacity>
                   </View>
-                </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
-      )}
-    </View>
+                ))
+              )}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }

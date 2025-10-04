@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 interface Curso {
   id_curso: number;
@@ -68,7 +69,10 @@ export default function AdicionarCursoScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
@@ -155,6 +159,6 @@ export default function AdicionarCursoScreen() {
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }

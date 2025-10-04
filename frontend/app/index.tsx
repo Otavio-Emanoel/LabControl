@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
+  SafeAreaView,
 } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "@/lib/api";
 import { useRouter } from "expo-router";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 // Tipos retornados pelo backend
 interface Reserva {
@@ -116,7 +118,7 @@ export default function Index() {
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -223,6 +225,10 @@ export default function Index() {
 
       {/* Navbar inferior fixa */}
       <Nav active="home" />
-    </View>
+
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
+    </SafeAreaView>
   );
 }

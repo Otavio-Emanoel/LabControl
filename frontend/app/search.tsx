@@ -5,12 +5,14 @@ import {
   TextInput,
   Keyboard,
   ScrollView,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import Nav from "../components/nav";
+import ConnectionBadge from "@/components/ConnectionBadge";
 
 // Índice simples do que pode ser pesquisado na aplicação
 const SEARCH_INDEX: {
@@ -20,44 +22,44 @@ const SEARCH_INDEX: {
   route: string;
   keywords: string[];
 }[] = [
-  {
-    title: "Início",
-    subtitle: "Voltar para a tela inicial",
-    icon: "home-outline",
-    route: "/",
-    keywords: ["home", "inicio", "dashboard", "principal"],
-  },
-  {
-    title: "Agendamentos",
-    subtitle: "Ver e criar agendamentos",
-    icon: "calendar-outline",
-    route: "/agendamento",
-    keywords: ["agendamento", "agenda", "reservas", "laboratório", "lab"],
-  },
-  {
-    title: "Perfil",
-    subtitle: "Ver e editar sua conta",
-    icon: "person-outline",
-    route: "/user",
-    keywords: ["perfil", "conta", "user", "dados", "minha conta"],
-  },
-  {
-    title: "Configurações",
-    subtitle: "Notificações, segurança e privacidade",
-    icon: "settings-outline",
-    route: "/settings",
-    keywords: [
-      "configuracoes",
-      "configurações",
-      "settings",
-      "notificacoes",
-      "notificações",
-      "seguranca",
-      "segurança",
-      "privacidade",
-    ],
-  },
-];
+    {
+      title: "Início",
+      subtitle: "Voltar para a tela inicial",
+      icon: "home-outline",
+      route: "/",
+      keywords: ["home", "inicio", "dashboard", "principal"],
+    },
+    {
+      title: "Agendamentos",
+      subtitle: "Ver e criar agendamentos",
+      icon: "calendar-outline",
+      route: "/agendamento",
+      keywords: ["agendamento", "agenda", "reservas", "laboratório", "lab"],
+    },
+    {
+      title: "Perfil",
+      subtitle: "Ver e editar sua conta",
+      icon: "person-outline",
+      route: "/user",
+      keywords: ["perfil", "conta", "user", "dados", "minha conta"],
+    },
+    {
+      title: "Configurações",
+      subtitle: "Notificações, segurança e privacidade",
+      icon: "settings-outline",
+      route: "/settings",
+      keywords: [
+        "configuracoes",
+        "configurações",
+        "settings",
+        "notificacoes",
+        "notificações",
+        "seguranca",
+        "segurança",
+        "privacidade",
+      ],
+    },
+  ];
 
 const RECENTS_KEY = "recent_searches";
 
@@ -80,13 +82,13 @@ export default function Search() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) setRecentSearches(parsed);
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
   useEffect(() => {
     AsyncStorage.setItem(RECENTS_KEY, JSON.stringify(recentSearches)).catch(
-      () => {}
+      () => { }
     );
   }, [recentSearches]);
 
@@ -157,7 +159,10 @@ export default function Search() {
   };
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black">
+      <View className="absolute top-3 right-3 z-50">
+        <ConnectionBadge />
+      </View>
       {/* Barra de pesquisa */}
       <View className="p-4 flex-row items-center w-full mt-24 px-4">
         <TouchableOpacity className="absolute left-6" onPress={handleBack}>
@@ -244,7 +249,7 @@ export default function Search() {
       {/* Sugestões */}
       <Text className="text-[#323232] w-full px-4 mt-4 mb-2">Sugestões</Text>
       <View className="flex flex-wrap flex-row gap-2 w-full px-4">
-        { [
+        {[
           "# Conta",
           "# Agendamento",
           "# Segurança",
@@ -262,6 +267,6 @@ export default function Search() {
       </View>
 
       <Nav active="search" />
-    </View>
+    </SafeAreaView>
   );
 }

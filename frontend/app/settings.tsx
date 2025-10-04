@@ -1,11 +1,12 @@
 // app/Settings.tsx
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import Navbar from '../components/nav';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 export default function Settings() {
     useAuthGuard();
@@ -19,7 +20,11 @@ export default function Settings() {
     };
   
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
+      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <ConnectionBadge />
+      </View>
+
       {/* Topo */}
       <View className="px-6 pt-16">
         {/* Título centralizado com margem superior */}
@@ -61,6 +66,6 @@ export default function Settings() {
       <View className="absolute bottom-0 left-0 right-0">
         <Navbar active="home" />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/nav';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import ConnectionBadge from '@/components/ConnectionBadge';
 
 interface UserMe {
   user?: {
@@ -80,7 +81,7 @@ export default function ProfileScreen() {
     .toUpperCase();
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         {/* Header com imagem de fundo */}
         <ImageBackground
@@ -218,7 +219,11 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
+      <View style={{ position: 'absolute', top: 12, right: 12 }}>
+        <ConnectionBadge />
+      </View>
+
       <Navbar active="perfil" />
-    </View>
+    </SafeAreaView>
   );
 }

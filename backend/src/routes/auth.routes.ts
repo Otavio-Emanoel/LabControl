@@ -38,4 +38,9 @@ router.get('/me', authRequired, (req, res) => {
   res.json({ user: (req as any).user });
 });
 
+// Rota de ping para checar status do servidor
+router.get('/ping', (_req, res) => {
+  res.json({ ok: true, ts: Date.now() });
+});
+
 export default router;
