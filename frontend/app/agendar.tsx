@@ -31,6 +31,7 @@ interface Reserva {
 interface Lab {
   id_Laboratorio: number;
   numero: string;
+  descricao?: string | null;
 }
 
 interface ProfDiscRow {

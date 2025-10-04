@@ -14,6 +14,7 @@ import ConnectionBadge from '@/components/ConnectionBadge';
 interface Lab {
   id_Laboratorio: number;
   numero: string;
+  descricao?: string | null;
 }
 
 interface Reserva {

@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ConnectionBadge from '@/components/ConnectionBadge';
 
 // Tipos
-interface Lab { id_Laboratorio: number; numero: string; }
+interface Lab { id_Laboratorio: number; numero: string; descricao?: string | null }
 interface Disciplina { id_disciplina: number; nome: string; id_curso?: number }
 interface Professor { id_usuario: number; nome: string; cargo?: string; }
 interface ProfDisc { id_usuario: number; id_disciplina: number; }

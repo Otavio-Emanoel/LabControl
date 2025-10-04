@@ -66,11 +66,11 @@ CREATE TABLE `laboratorio` (
 --
 
 INSERT INTO `laboratorio` (`id_Laboratorio`, `numero`, `descricao`) VALUES
-(1, 'lab5', 'Laboratório 5'),
-(2, 'lab1', 'Laboratório 1'),
-(3, 'lab2', 'Laboratório 2'),
-(4, 'lab3', 'Laboratório 3'),
-(5, 'lab4', 'Laboratório 4'),
+(1, 'lab1', 'Laboratório 1'),
+(2, 'lab2', 'Laboratório 2'),
+(3, 'lab3', 'Laboratório 3'),
+(4, 'lab4', 'Laboratório 4'),
+(5, 'lab5', 'Laboratório 5'),
 (6, 'auditorio', 'Auditório Principal');
 
 -- --------------------------------------------------------

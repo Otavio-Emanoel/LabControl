@@ -26,6 +26,7 @@ const SLOTS = [
 interface Lab {
   id_Laboratorio: number;
   numero: string;
+  descricao?: string | null;
 }
 
 interface Reserva {
@@ -361,7 +362,7 @@ export default function AgendamentosDiaPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+      <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 50 }}>
         <ConnectionBadge />
       </View>
       <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
@@ -408,7 +409,7 @@ export default function AgendamentosDiaPage() {
                     key={lab.id_Laboratorio}
                     style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}
                   >
-                    <Text style={{ color: 'white', fontWeight: '700' }}>Lab {lab.numero}</Text>
+                    <Text style={{ color: 'white', fontWeight: '700' }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
                   </View>
                 ))}
               </View>
@@ -581,7 +582,7 @@ export default function AgendamentosDiaPage() {
               </View>
               {labs.map((lab) => (
                 <View key={`cap-${lab.id_Laboratorio}`} style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}>
-                  <Text style={{ color: 'white', fontWeight: '700' }}>Lab {lab.numero}</Text>
+                  <Text style={{ color: 'white', fontWeight: '700' }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
                 </View>
               ))}
             </View>
