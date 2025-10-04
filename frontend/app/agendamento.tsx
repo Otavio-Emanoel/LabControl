@@ -270,6 +270,13 @@ export default function AgendamentoPage() {
   // Lista a ser exibida (se for Aux/Coord mostra todos os do dia)
   const agendamentosVisiveis = isAuxCoord ? reservasDoDia : meusAgendamentos;
 
+  // Mapa para acessar descrição do laboratório rapidamente
+  const labById = useMemo(() => {
+    const map = new Map<number, Lab>();
+    labs.forEach(l => map.set(l.id_Laboratorio, l));
+    return map;
+  }, [labs]);
+
   const sameYMD = (a: Date, b: Date) => formatYMD(a) === formatYMD(b);
 
   const monthLabel = useMemo(() => {
@@ -516,6 +523,10 @@ export default function AgendamentoPage() {
                 const colors = gradients[idx % gradients.length] as readonly [string, string];
                 const isFixo = !!a.isFixo;
                 const canDelete = isFixo ? isAuxCoord : true;
+                const labInfo = labById.get(a.id_Laboratorio);
+                const labLabel = (labInfo?.descricao && labInfo.descricao.trim().length > 0)
+                  ? labInfo.descricao
+                  : (labInfo?.numero || a.numero_laboratorio || `Lab ${a.id_Laboratorio}`);
                 return (
                   <LinearGradient
                     key={`${a.id_Reserva}`}
@@ -527,7 +538,7 @@ export default function AgendamentoPage() {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <View style={{ flex: 1, paddingRight: 12 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {a.numero_laboratorio}</Text>
+                          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>{labLabel}</Text>
                           {isFixo ? (
                             <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
                               <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>

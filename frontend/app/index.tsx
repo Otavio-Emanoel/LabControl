@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Nav from "@/components/nav";
 import MeusAgendamentosCard from "@/components/meusAgendamentosCard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,6 +30,9 @@ interface Reserva {
   nome_usuario: string;
   id_Laboratorio: number;
   numero_laboratorio: string;
+  // campos opcionais para representar horário fixo como pseudo-reserva
+  isFixo?: boolean;
+  id_fixo?: number;
 }
 
 function formatYMD(d: Date) {
@@ -59,6 +62,8 @@ export default function Index() {
   const [myUserId, setMyUserId] = useState<number | null>(null);
   const [myUserNome, setMyUserNome] = useState<string>("");
   const [reservas, setReservas] = useState<Reserva[]>([]);
+  const [cargo, setCargo] = useState<string>("");
+  const [fixos, setFixos] = useState<any[]>([]);
 
   // Gera os próximos 7 dias (com YMD)
   const gerarSemanaAtual = () => {
@@ -87,15 +92,25 @@ export default function Index() {
         if (stored) {
           const u = JSON.parse(stored);
           setMyUserId(u?.id_usuario ?? null);
-          setMyUserNome(u?.nome ?? "");
+            setMyUserNome(u?.nome ?? "");
+            if (u?.cargo) setCargo(u.cargo);
         }
       } catch {}
       try {
-        const res = await api.get<Reserva[]>("/agendamentos/all");
-        setReservas(res.data as any);
+        const [reservasRes, fixosRes] = await Promise.all([
+          api.get<Reserva[]>("/agendamentos/all"),
+          api.get<any[]>("/horarios-fixos/"),
+        ]);
+        setReservas(reservasRes.data as any);
+        setFixos(Array.isArray(fixosRes.data) ? fixosRes.data : []);
       } catch (e) {
-        console.log("Falha ao carregar reservas", e);
+        console.log("Falha ao carregar reservas/fixos", e);
       }
+      // fallback para cargo via /auth/me
+      try {
+        const me = await api.get<{ user?: { cargo?: string } }>(`/auth/me`);
+        if (me.data?.user?.cargo) setCargo(me.data.user.cargo);
+      } catch {}
     };
     init();
   }, [ready]);
@@ -106,12 +121,61 @@ export default function Index() {
     setDiaSelecionado(semanaAtual[0].ymd); // seleciona hoje por padrão
   }, []);
 
+  const isAuxCoord = useMemo(() => cargo === 'Coordenador' || cargo === 'Auxiliar_Docente' || /coordenador|auxiliar/i.test(cargo || ''), [cargo]);
+
+  // Dia da semana para fixos (igual lógica usada em outras telas: domingo..sabado)
+  const ymdToDiaSemana = useCallback((ymd: string) => {
+    try {
+      const d = new Date(`${ymd}T00:00:00`);
+      const idx = d.getDay();
+      const dias = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'] as const;
+      return dias[idx];
+    } catch { return ''; }
+  }, []);
+
+  const agendamentosNormaisDoDia = useMemo(() => {
+    if (!diaSelecionado) return [] as Reserva[];
+    return reservas.filter(r => (r.dia || '').slice(0,10) === diaSelecionado);
+  }, [reservas, diaSelecionado]);
+
+  // Mapeia horários fixos do dia selecionado para pseudo-reservas
+  const fixosDoDia = useMemo(() => {
+    const ds = ymdToDiaSemana(diaSelecionado);
+    if (!ds) return [] as Reserva[];
+    return (fixos || [])
+      .filter(f => String(f.dia_semana).toLowerCase() === ds)
+      .map(f => {
+        const numeroLab = f.nome_laboratorio || f.numero_laboratorio || f.numero || '';
+        return {
+          id_Reserva: -300000 - Number(f.id_horario_fixo || 0),
+          id_fixo: Number(f.id_horario_fixo || 0),
+          isFixo: true,
+            horario: String(f.horario),
+          dia: diaSelecionado,
+          justificativa: null,
+          fk_aulas: null,
+          nome_disciplina: null,
+          id_usuario: Number(f.id_usuario),
+          nome_usuario: String(f.nome_usuario || ''),
+          id_Laboratorio: Number(f.id_Laboratorio),
+          numero_laboratorio: String(numeroLab),
+        } as Reserva;
+      });
+  }, [fixos, diaSelecionado, ymdToDiaSemana]);
+
+  // Remove fixos que colidem com reservas normais do mesmo lab+horario
+  const agendamentosDoDiaAll = useMemo(() => {
+    const ocupados = new Set(agendamentosNormaisDoDia.map(r => `${r.id_Laboratorio}-${(r.horario||'').slice(0,5)}`));
+    const fixosFiltrados = fixosDoDia.filter(f => !ocupados.has(`${f.id_Laboratorio}-${(f.horario||'').slice(0,5)}`));
+    return [...agendamentosNormaisDoDia, ...fixosFiltrados];
+  }, [agendamentosNormaisDoDia, fixosDoDia]);
+
   const meusAgendamentosDoDia = useMemo(() => {
     if (!myUserId || !diaSelecionado) return [] as Reserva[];
-    return reservas.filter(
-      (r) => r.id_usuario === myUserId && (r.dia || "").slice(0, 10) === diaSelecionado
-    );
-  }, [reservas, myUserId, diaSelecionado]);
+    return agendamentosDoDiaAll.filter(r => r.id_usuario === myUserId);
+  }, [agendamentosDoDiaAll, myUserId, diaSelecionado]);
+
+  const listaAgendamentosRender = isAuxCoord ? agendamentosDoDiaAll : meusAgendamentosDoDia;
 
   if (!ready) {
     return <View className="flex-1 bg-black" />;
@@ -193,7 +257,7 @@ export default function Index() {
 
         {/* Título de Aulas */}
         <View className="flex-row justify-between items-center mt-6">
-          <Text className="text-lg font-semibold text-white">Agendamentos</Text>
+          <Text className="text-lg font-semibold text-white">{isAuxCoord ? 'Agendamentos do Dia' : 'Meus Agendamentos'}</Text>
           <TouchableOpacity onPress={() => router.push(`/agendamentos-dia?date=${diaSelecionado}`)}>
             <Text className="text-[#71B9F4] font-semibold">Ver todos</Text>
           </TouchableOpacity>
@@ -201,15 +265,19 @@ export default function Index() {
 
         {/* Cards de Aulas */}
         <View className="mt-4">
-          {meusAgendamentosDoDia.length === 0 ? (
+          {listaAgendamentosRender.length === 0 ? (
             <Text className="text-white/70">Nenhum agendamento para este dia.</Text>
           ) : (
-            meusAgendamentosDoDia.map((a) => {
+            listaAgendamentosRender
+              .slice()
+              .sort((a,b) => (a.horario||'').localeCompare(b.horario||''))
+              .map((a) => {
               const start = (a.horario || "").slice(0, 5);
               const end = start ? addMinutesHHmm(start, 50) : "";
               const horario = start && end ? `${start} - ${end}` : start;
               const titulo = `Laboratório ${a.numero_laboratorio}`;
-              const tipo = a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : (a.justificativa || "Reserva");
+              const isFixo = !!a.isFixo;
+              const tipo = isFixo ? 'Horário Fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : (a.justificativa || 'Reserva'));
               return (
                 <MeusAgendamentosCard
                   key={a.id_Reserva}

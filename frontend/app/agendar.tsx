@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Animated, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
@@ -92,6 +92,31 @@ function ymdToDiaSemana(ymd: string) {
   }
 }
 
+// Util para escapar regex no highlight
+function escapeRegex(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function renderHighlighted(text: string, query: string, fallbackColor = 'white') {
+  if (!query) return <Text style={{ color: fallbackColor }}>{text}</Text>;
+  try {
+    const parts = text.split(new RegExp(`(${escapeRegex(query)})`, 'ig'));
+    return (
+      <Text style={{ color: fallbackColor }}>
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase() ? (
+            <Text key={i} style={{ color: '#60A5FA', fontWeight: '700' }}>{part}</Text>
+          ) : (
+            <Text key={i}>{part}</Text>
+          )
+        )}
+      </Text>
+    );
+  } catch {
+    return <Text style={{ color: fallbackColor }}>{text}</Text>;
+  }
+}
+
 export default function AgendarLabPage() {
   const params = useLocalSearchParams<{ labId?: string; date?: string }>();
   const labId = Number(params.labId);
@@ -120,8 +145,27 @@ export default function AgendarLabPage() {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
 
   // Filtros de busca no modal
-  const [profQuery, setProfQuery] = useState('');
+  // Queries (debounce)
+  const [profQuery, setProfQuery] = useState(''); // valor efetivo (debounced)
   const [discQuery, setDiscQuery] = useState('');
+  const [profQueryInput, setProfQueryInput] = useState(''); // valor digitado imediato
+  const [discQueryInput, setDiscQueryInput] = useState('');
+  const [profShowAll, setProfShowAll] = useState(false);
+  const [discShowAll, setDiscShowAll] = useState(false);
+
+  // Refs para FlatList e índice alfabético
+  const profListRef = useRef<FlatList>(null);
+  const discListRef = useRef<FlatList>(null);
+
+  // Debounce simples
+  useEffect(() => {
+    const h = setTimeout(() => setProfQuery(profQueryInput), 250);
+    return () => clearTimeout(h);
+  }, [profQueryInput]);
+  useEffect(() => {
+    const h = setTimeout(() => setDiscQuery(discQueryInput), 250);
+    return () => clearTimeout(h);
+  }, [discQueryInput]);
 
   const isAdmin = useMemo(() => myCargo === 'Coordenador' || myCargo === 'Auxiliar_Docente', [myCargo]);
 
@@ -211,6 +255,31 @@ export default function AgendarLabPage() {
       d.nome_disciplina.toLowerCase().includes(q) || (d.cursoNome || '').toLowerCase().includes(q)
     );
   }, [discQuery, discWithCourse]);
+
+  // Índice alfabético (primeira ocorrência da letra)
+  const profLetterIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredProfessores.forEach((p, i) => {
+      const letter = (p.nome_professor[0] || '').toUpperCase();
+      if (letter && !map.has(letter)) map.set(letter, i);
+    });
+    return map;
+  }, [filteredProfessores]);
+  const discLetterIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredDisciplinas.forEach((d, i) => {
+      const letter = (d.nome_disciplina[0] || '').toUpperCase();
+      if (letter && !map.has(letter)) map.set(letter, i);
+    });
+    return map;
+  }, [filteredDisciplinas]);
+
+  const rowHeight = 48; // usado em getItemLayout
+  const getItemLayoutProf = useCallback((_data: any, index: number) => ({ length: rowHeight, offset: rowHeight * index, index }), []);
+  const getItemLayoutDisc = useCallback((_data: any, index: number) => ({ length: rowHeight, offset: rowHeight * index, index }), []);
+
+  const limitedProfessores = useMemo(() => profShowAll ? filteredProfessores : filteredProfessores.slice(0, 40), [profShowAll, filteredProfessores]);
+  const limitedDisciplinas = useMemo(() => discShowAll ? filteredDisciplinas : filteredDisciplinas.slice(0, 40), [discShowAll, filteredDisciplinas]);
 
   const selectedProfessorName = useMemo(() => {
     if (!selectedProfessor) return '';
@@ -455,7 +524,7 @@ export default function AgendarLabPage() {
               </View>
 
               <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
                   <Text style={{ color: '#9CA3AF' }}>Horário: <Text style={{ color: 'white' }}>{slotToSchedule}</Text>  |  Dia: <Text style={{ color: 'white' }}>{date}</Text></Text>
 
                   {/* Chips de seleção */}
@@ -490,26 +559,58 @@ export default function AgendarLabPage() {
                         <TextInput
                           placeholder="Buscar professor..."
                           placeholderTextColor="#6B7280"
-                          value={profQuery}
-                          onChangeText={setProfQuery}
+                          value={profQueryInput}
+                          onChangeText={setProfQueryInput}
                           style={{ color: 'white', padding: 12 }}
                         />
-                        <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
-                          <ScrollView nestedScrollEnabled>
-                            {filteredProfessores.length === 0 ? (
-                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>
-                            ) : (
-                              filteredProfessores.map((item) => (
-                                <TouchableOpacity
-                                  key={String(item.id_usuario)}
-                                  onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
-                                  style={{ padding: 12, backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent' }}
-                                >
-                                  <Text style={{ color: 'white' }}>{item.nome_professor}</Text>
+                        <View style={{ height: 260, borderTopWidth: 1, borderTopColor: '#1F2937', position: 'relative' }}>
+                          {filteredProfessores.length === 0 ? (
+                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhum professor encontrado.</Text>
+                          ) : (
+                            <>
+                              <FlatList
+                                nestedScrollEnabled
+                                ref={profListRef}
+                                data={limitedProfessores}
+                                keyExtractor={(item: any) => String(item.id_usuario)}
+                                getItemLayout={getItemLayoutProf}
+                                initialNumToRender={20}
+                                windowSize={8}
+                                renderItem={({ item }) => (
+                                  <TouchableOpacity
+                                    onPress={() => { setSelectedProfessor(item.id_usuario); setSelectedDisciplina(null); }}
+                                    style={{
+                                      paddingHorizontal: 14,
+                                      height: rowHeight,
+                                      justifyContent: 'center',
+                                      backgroundColor: selectedProfessor === item.id_usuario ? '#1C4AED' : 'transparent'
+                                    }}
+                                  >
+                                    {renderHighlighted(item.nome_professor, profQuery)}
+                                  </TouchableOpacity>
+                                )}
+                              />
+                              {filteredProfessores.length > 40 && (
+                                <TouchableOpacity onPress={() => setProfShowAll(s => !s)} style={{ padding: 10, alignItems: 'center' }}>
+                                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>{profShowAll ? 'Mostrar menos' : `Mostrar todos (${filteredProfessores.length})`}</Text>
                                 </TouchableOpacity>
-                              ))
-                            )}
-                          </ScrollView>
+                              )}
+                              {filteredProfessores.length > 30 && !profQuery && (
+                                <View style={{ position: 'absolute', right: 4, top: 4, bottom: 4, justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: '#0B1220AA', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 4 }}>
+                                    {Array.from(profLetterIndexMap.keys()).sort().map(letter => (
+                                      <TouchableOpacity key={letter} onPress={() => {
+                                        const idx = profLetterIndexMap.get(letter) ?? 0;
+                                        profListRef.current?.scrollToIndex({ index: profShowAll ? idx : Math.min(idx, limitedProfessores.length - 1), animated: true });
+                                      }} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
+                                        <Text style={{ color: '#93C5FD', fontSize: 10, fontWeight: '600' }}>{letter}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </View>
+                                </View>
+                              )}
+                            </>
+                          )}
                         </View>
                       </View>
 
@@ -522,26 +623,61 @@ export default function AgendarLabPage() {
                           <TextInput
                             placeholder="Buscar disciplina ou curso..."
                             placeholderTextColor="#6B7280"
-                            value={discQuery}
-                            onChangeText={setDiscQuery}
+                            value={discQueryInput}
+                            onChangeText={setDiscQueryInput}
                             style={{ color: 'white', padding: 12 }}
                           />
-                          <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
-                            <ScrollView nestedScrollEnabled>
-                              {filteredDisciplinas.length === 0 ? (
-                                <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
-                              ) : (
-                                filteredDisciplinas.map((item) => (
-                                  <TouchableOpacity
-                                    key={`${item.id_usuario}-${item.id_disciplina}`}
-                                    onPress={() => setSelectedDisciplina(item.id_disciplina)}
-                                    style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
-                                  >
-                                    <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                          <View style={{ height: 260, borderTopWidth: 1, borderTopColor: '#1F2937', position: 'relative' }}>
+                            {filteredDisciplinas.length === 0 ? (
+                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Nenhuma disciplina para o professor selecionado.</Text>
+                            ) : (
+                              <>
+                                <FlatList
+                                  nestedScrollEnabled
+                                  ref={discListRef}
+                                  data={limitedDisciplinas}
+                                  keyExtractor={(item: any) => `${item.id_usuario}-${item.id_disciplina}`}
+                                  getItemLayout={getItemLayoutDisc}
+                                  initialNumToRender={20}
+                                  windowSize={8}
+                                  renderItem={({ item }) => {
+                                    const label = `${item.nome_disciplina}${item.cursoNome ? ` · ${item.cursoNome}` : ''}`;
+                                    return (
+                                      <TouchableOpacity
+                                        onPress={() => setSelectedDisciplina(item.id_disciplina)}
+                                        style={{
+                                          paddingHorizontal: 14,
+                                          height: rowHeight,
+                                          justifyContent: 'center',
+                                          backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent'
+                                        }}
+                                      >
+                                        {renderHighlighted(label, discQuery)}
+                                      </TouchableOpacity>
+                                    );
+                                  }}
+                                />
+                                {filteredDisciplinas.length > 40 && (
+                                  <TouchableOpacity onPress={() => setDiscShowAll(s => !s)} style={{ padding: 10, alignItems: 'center' }}>
+                                    <Text style={{ color: '#60A5FA', fontSize: 12 }}>{discShowAll ? 'Mostrar menos' : `Mostrar todas (${filteredDisciplinas.length})`}</Text>
                                   </TouchableOpacity>
-                                ))
-                              )}
-                            </ScrollView>
+                                )}
+                                {filteredDisciplinas.length > 30 && !discQuery && (
+                                  <View style={{ position: 'absolute', right: 4, top: 4, bottom: 4, justifyContent: 'center' }}>
+                                    <View style={{ backgroundColor: '#0B1220AA', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 4 }}>
+                                      {Array.from(discLetterIndexMap.keys()).sort().map(letter => (
+                                        <TouchableOpacity key={letter} onPress={() => {
+                                          const idx = discLetterIndexMap.get(letter) ?? 0;
+                                          discListRef.current?.scrollToIndex({ index: discShowAll ? idx : Math.min(idx, limitedDisciplinas.length - 1), animated: true });
+                                        }} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
+                                          <Text style={{ color: '#93C5FD', fontSize: 10, fontWeight: '600' }}>{letter}</Text>
+                                        </TouchableOpacity>
+                                      ))}
+                                    </View>
+                                  </View>
+                                )}
+                              </>
+                            )}
                           </View>
                         </View>
                       )}
@@ -554,26 +690,61 @@ export default function AgendarLabPage() {
                         <TextInput
                           placeholder="Buscar disciplina ou curso..."
                           placeholderTextColor="#6B7280"
-                          value={discQuery}
-                          onChangeText={setDiscQuery}
+                          value={discQueryInput}
+                          onChangeText={setDiscQueryInput}
                           style={{ color: 'white', padding: 12 }}
                         />
-                        <View style={{ height: 220, borderTopWidth: 1, borderTopColor: '#1F2937' }}>
-                          <ScrollView nestedScrollEnabled>
-                            {filteredDisciplinas.length === 0 ? (
-                              <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>
-                            ) : (
-                              filteredDisciplinas.map((item) => (
-                                <TouchableOpacity
-                                  key={`${item.id_usuario}-${item.id_disciplina}`}
-                                  onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
-                                  style={{ padding: 12, backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent' }}
-                                >
-                                  <Text style={{ color: 'white' }}>{item.nome_disciplina}{item.cursoNome ? ` · ${item.cursoNome}` : ''}</Text>
+                        <View style={{ height: 260, borderTopWidth: 1, borderTopColor: '#1F2937', position: 'relative' }}>
+                          {filteredDisciplinas.length === 0 ? (
+                            <Text style={{ color: '#9CA3AF', padding: 12 }}>Você não possui disciplinas vinculadas.</Text>
+                          ) : (
+                            <>
+                              <FlatList
+                                nestedScrollEnabled
+                                ref={discListRef}
+                                data={limitedDisciplinas}
+                                keyExtractor={(item: any) => `${item.id_usuario}-${item.id_disciplina}`}
+                                getItemLayout={getItemLayoutDisc}
+                                initialNumToRender={20}
+                                windowSize={8}
+                                renderItem={({ item }) => {
+                                  const label = `${item.nome_disciplina}${item.cursoNome ? ` · ${item.cursoNome}` : ''}`;
+                                  return (
+                                    <TouchableOpacity
+                                      onPress={() => { setSelectedDisciplina(item.id_disciplina); setErrorMsg(null); }}
+                                      style={{
+                                        paddingHorizontal: 14,
+                                        height: rowHeight,
+                                        justifyContent: 'center',
+                                        backgroundColor: selectedDisciplina === item.id_disciplina ? '#1C4AED' : 'transparent'
+                                      }}
+                                    >
+                                      {renderHighlighted(label, discQuery)}
+                                    </TouchableOpacity>
+                                  );
+                                }}
+                              />
+                              {filteredDisciplinas.length > 40 && (
+                                <TouchableOpacity onPress={() => setDiscShowAll(s => !s)} style={{ padding: 10, alignItems: 'center' }}>
+                                  <Text style={{ color: '#60A5FA', fontSize: 12 }}>{discShowAll ? 'Mostrar menos' : `Mostrar todas (${filteredDisciplinas.length})`}</Text>
                                 </TouchableOpacity>
-                              ))
-                            )}
-                          </ScrollView>
+                              )}
+                              {filteredDisciplinas.length > 30 && !discQuery && (
+                                <View style={{ position: 'absolute', right: 4, top: 4, bottom: 4, justifyContent: 'center' }}>
+                                  <View style={{ backgroundColor: '#0B1220AA', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 4 }}>
+                                    {Array.from(discLetterIndexMap.keys()).sort().map(letter => (
+                                      <TouchableOpacity key={letter} onPress={() => {
+                                        const idx = discLetterIndexMap.get(letter) ?? 0;
+                                        discListRef.current?.scrollToIndex({ index: discShowAll ? idx : Math.min(idx, limitedDisciplinas.length - 1), animated: true });
+                                      }} style={{ paddingVertical: 2, paddingHorizontal: 4 }}>
+                                        <Text style={{ color: '#93C5FD', fontSize: 10, fontWeight: '600' }}>{letter}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </View>
+                                </View>
+                              )}
+                            </>
+                          )}
                         </View>
                       </View>
                     </View>
