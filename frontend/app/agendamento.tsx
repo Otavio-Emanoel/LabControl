@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getApiBaseUrl } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -267,6 +267,9 @@ export default function AgendamentoPage() {
     return reservasDoDia.filter((r) => r.id_usuario === myUserId);
   }, [reservasDoDia, myUserId]);
 
+  // Lista a ser exibida (se for Aux/Coord mostra todos os do dia)
+  const agendamentosVisiveis = isAuxCoord ? reservasDoDia : meusAgendamentos;
+
   const sameYMD = (a: Date, b: Date) => formatYMD(a) === formatYMD(b);
 
   const monthLabel = useMemo(() => {
@@ -379,15 +382,9 @@ export default function AgendamentoPage() {
       <View className='flex-1 bg-black'>
         <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 104 }}>
           {/* background image */}
-          <View style={{ width: '100%', height: '13%', position: 'absolute', top: 0, left: 0 }}>
+          <View style={{ width: '100%', height: '25%', position: 'absolute', top: 0, left: 0 }}>
             <Image source={require('../assets/images/bg2.jpg')} style={{ width: '100%', height: '100%' }} />
           </View>
-
-          {/* Voltar */}
-          <Link href="/" className='flex-1 flex-row items-center h-full p-16 z-10'>
-            <Ionicons name="arrow-back" size={16} color="white" />
-            <Text className='color-white text-xl font-poppins ml-2'>Voltar</Text>
-          </Link>
 
           {/* Tabs */}
           {/* <View className='flex-row items-center mx-auto rounded-full h-8 z-10 bg-white w-[90%] items-center justify-center'>
@@ -406,7 +403,7 @@ export default function AgendamentoPage() {
           </View> */}
 
           {/* Calendário */}
-          <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+          <View style={{ marginTop: 90, paddingHorizontal: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <TouchableOpacity onPress={goPrevMonth}>
                 <Ionicons name="chevron-back" size={20} color="#fff" />
@@ -472,7 +469,7 @@ export default function AgendamentoPage() {
                 <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View>
-                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>Laboratório {lab.numero}</Text>
+                      <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{lab.descricao}</Text>
                       <Text style={{ color: '#9CA3AF', marginTop: 4 }}>{count} agendamentos no dia</Text>
                     </View>
                     <TouchableOpacity onPress={() => onAgendar(lab)} style={{ backgroundColor: '#3B96E2', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
@@ -488,13 +485,26 @@ export default function AgendamentoPage() {
             })}
           </View>
 
-          {/* Meus Agendamentos */}
+          {/* Lista de Agendamentos (dinâmico para cargo) */}
           <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
-            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Meus Agendamentos</Text>
-            {meusAgendamentos.length === 0 ? (
-              <Text style={{ color: '#9CA3AF' }}>Você não possui agendamentos neste dia.</Text>
+            <Text style={{ color: 'white', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>
+              {isAuxCoord ? 'Agendamentos do Dia' : 'Meus Agendamentos'}
+            </Text>
+            {agendamentosVisiveis.length === 0 ? (
+              <Text style={{ color: '#9CA3AF' }}>
+                {isAuxCoord ? 'Nenhum agendamento para este dia.' : 'Você não possui agendamentos neste dia.'}
+              </Text>
             ) : (
-              meusAgendamentos.map((a, idx) => {
+              agendamentosVisiveis
+                .slice() // cópia para ordenar
+                .sort((a, b) => {
+                  // ordenar por horário depois por laboratório
+                  const ha = (a.horario || '').slice(0,5);
+                  const hb = (b.horario || '').slice(0,5);
+                  if (ha < hb) return -1; if (ha > hb) return 1;
+                  return a.id_Laboratorio - b.id_Laboratorio;
+                })
+                .map((a, idx) => {
                 const start = (a.horario || '').slice(0, 5);
                 const end = start ? addMinutesHHmm(start, 50) : '';
                 const timeRange = start && end ? `${start} - ${end}` : start ? `${start}` : '';

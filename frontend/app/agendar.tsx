@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Nav from '@/components/nav';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ConnectionBadge from '@/components/ConnectionBadge';
+import BackButton from '@/components/BackButton';
 
 // Slots fixos
 const SLOTS = [
@@ -377,15 +378,14 @@ export default function AgendarLabPage() {
       </View>
 
       <ScrollView className="flex-1 bg-black" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 96 }}>
-        {/* Voltar */}
-        <Link href="/agendamento" className='flex-1 flex-row items-center h-full p-4 z-10'>
-          <Ionicons name="arrow-back" size={18} color="white" />
-          <Text className='color-white text-lg font-poppins ml-2'>Voltar</Text>
-        </Link>
+        {/* Botão Voltar */}
+          <View style={{ paddingHorizontal: 16, paddingTop: 28, alignItems: 'flex-start' }}>
+            <BackButton to="/agendamento" variant='glass' size='md' style={{ minWidth: undefined }} />
+          </View>
 
         {/* Header do Lab */}
         <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20 }}>Laboratório {lab?.numero ?? labId}</Text>
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20, marginTop: 8 }}>{lab?.descricao ?? labId}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
             <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 4, borderColor: '#3B96E2' }} />
             <Text style={{ color: '#9CA3AF', marginLeft: 10 }}>{usagePercent}% em uso</Text>
