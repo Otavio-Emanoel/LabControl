@@ -62,6 +62,19 @@
   - Bloqueia se houver reservas, horários fixos ou vínculos disciplina.
 - Retornos: 200 sucesso, 404 não encontrado, 409 dependências.
 
+**GET /auth/usuarios**
+- Lista todos os usuários (apenas Auxiliar_Docente)
+- Retorno: `[ { id_usuario, nome, email, cargo } ]`
+
+**PATCH /auth/usuario/:id**
+- Atualiza dados de um usuário (apenas Auxiliar_Docente)
+- Body (todos opcionais, pelo menos um): `{ nome?, email?, cargo? }`
+- Validações:
+  - `cargo` deve ser um de: Professor | Auxiliar_Docente | Coordenador
+  - E-mail único
+  - Não permite alterar o próprio cargo
+- Retornos: 200 sucesso `{ message, user }`, 404 não encontrado, 409 e-mail duplicado, 400 requisição inválida.
+
 **DELETE /auth/curso/:id**
 - Remove curso (apenas Auxiliar_Docente)
 - Regras:

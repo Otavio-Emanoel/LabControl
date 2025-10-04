@@ -58,7 +58,7 @@ export default function CadastroUsuarioScreen() {
         <ConnectionBadge />
       </View>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, marginTop: 10 }}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>

@@ -336,3 +336,81 @@ export async function removerUsuario(req: Request, res: Response) {
         return res.status(500).json({ error: message });
     }
 }
+
+// Listar todos os usuários (apenas Auxiliar_Docente)
+export async function listarUsuarios(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || usuario.cargo !== 'Auxiliar_Docente') {
+            return res.status(403).json({ error: 'Apenas Auxiliar Docente pode listar usuários.' });
+        }
+        const [rows] = await pool.query('SELECT id_usuario, nome, email, cargo FROM usuarios ORDER BY nome');
+        return res.json(rows);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}
+
+// Atualizar usuário (apenas Auxiliar_Docente). Campos opcionais: nome, email, cargo
+export async function atualizarUsuario(req: Request, res: Response) {
+    try {
+        const usuario = (req as any).user;
+        if (!usuario || usuario.cargo !== 'Auxiliar_Docente') {
+            return res.status(403).json({ error: 'Apenas Auxiliar Docente pode atualizar usuário.' });
+        }
+        const { id } = req.params;
+        if (!id) return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+
+        const { nome, email, cargo } = req.body || {};
+        if (!nome && !email && !cargo) {
+            return res.status(400).json({ error: 'Informe pelo menos um campo para atualizar (nome, email, cargo).' });
+        }
+
+        // Validação de cargo se enviado
+        const cargosPermitidos = ['Professor', 'Auxiliar_Docente', 'Coordenador'];
+        if (cargo && !cargosPermitidos.includes(cargo)) {
+            return res.status(400).json({ error: 'Cargo inválido.' });
+        }
+
+        // Evita alteração de cargo de si mesmo opcionalmente (poderia permitir, mas evita travar acesso)
+        if (cargo && Number(id) === Number(usuario.id_usuario) && cargo !== usuario.cargo) {
+            return res.status(400).json({ error: 'Não é permitido alterar o próprio cargo.' });
+        }
+
+        // Checa se usuário existe
+        const [existe]: any = await pool.query('SELECT id_usuario FROM usuarios WHERE id_usuario = ? LIMIT 1', [id]);
+        if (!Array.isArray(existe) || !existe.length) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+
+        // Checa duplicidade de email
+        if (email) {
+            const [dup]: any = await pool.query('SELECT id_usuario FROM usuarios WHERE email = ? AND id_usuario <> ? LIMIT 1', [email, id]);
+            if (Array.isArray(dup) && dup.length) {
+                return res.status(409).json({ error: 'E-mail já utilizado por outro usuário.' });
+            }
+        }
+
+        const campos: string[] = [];
+        const valores: any[] = [];
+        if (nome) { campos.push('nome = ?'); valores.push(nome); }
+        if (email) { campos.push('email = ?'); valores.push(email); }
+        if (cargo) { campos.push('cargo = ?'); valores.push(cargo); }
+        if (!campos.length) {
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+        }
+        valores.push(id);
+        const sql = `UPDATE usuarios SET ${campos.join(', ')} WHERE id_usuario = ? LIMIT 1`;
+        const [upd]: any = await pool.query(sql, valores);
+        if (upd.affectedRows === 0) {
+            return res.status(500).json({ error: 'Falha ao atualizar usuário.' });
+        }
+        const [updatedRows]: any = await pool.query('SELECT id_usuario, nome, email, cargo FROM usuarios WHERE id_usuario = ? LIMIT 1', [id]);
+        const updated = Array.isArray(updatedRows) && updatedRows.length ? updatedRows[0] : null;
+        return res.json({ message: 'Usuário atualizado com sucesso.', user: updated });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro desconhecido';
+        return res.status(500).json({ error: message });
+    }
+}

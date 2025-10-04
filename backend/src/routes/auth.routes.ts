@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adicionarCurso, adicionarDisciplina, listarCursos, listarDisciplinas, listarProfessoresDisciplinas, login, register, vincularProfessorDisciplina, listarProfessores, desvincularProfessorDisciplina, removerCurso, removerDisciplina, removerUsuario } from '../controllers/user.controller';
+import { adicionarCurso, adicionarDisciplina, listarCursos, listarDisciplinas, listarProfessoresDisciplinas, login, register, vincularProfessorDisciplina, listarProfessores, desvincularProfessorDisciplina, removerCurso, removerDisciplina, removerUsuario, listarUsuarios, atualizarUsuario } from '../controllers/user.controller';
 import { authRequired, requireRole } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -41,6 +41,12 @@ router.delete('/disciplina/:id', authRequired, requireRole(['Coordenador', 'Auxi
 
 // Remover usuário (Auxiliar_Docente)
 router.delete('/usuario/:id', authRequired, requireRole('Auxiliar_Docente'), removerUsuario);
+
+// Listar usuários (Auxiliar_Docente)
+router.get('/usuarios', authRequired, requireRole('Auxiliar_Docente'), listarUsuarios);
+
+// Atualizar usuário (Auxiliar_Docente)
+router.patch('/usuario/:id', authRequired, requireRole('Auxiliar_Docente'), atualizarUsuario);
 
 // Exemplo de rota protegida simples
 router.get('/me', authRequired, (req, res) => {
