@@ -152,4 +152,4 @@ npx expo start
 - Testes automatizados.
 
 ---
-Feito com 💙 pela turma do 2DS 2025 da Etec de Peruíbe.
+Feito com 💙 pela turma do 2DS de 2025 da Etec de Peruíbe.
