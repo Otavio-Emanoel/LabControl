@@ -207,7 +207,7 @@ export default function Index() {
       />
 
       {/* Conteúdo com Scroll */}
-      <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 60 : 200 }} className="px-6 pt-12 mt-5">
+      <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 100 : 200 }} className="px-6 pt-12 mt-5">
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
           {Platform.OS !== 'web' ? (
