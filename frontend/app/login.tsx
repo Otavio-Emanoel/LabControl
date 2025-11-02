@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, SafeAreaView, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -57,20 +57,25 @@ function LoginPage() {
       <View className="flex-1 bg-[#0B0B0F]">
         <StatusBar style="light" />
         {/* Eclipses decorativos (posicionamento mais fiel ao mock) */}
-        <Image
-          source={require("../assets/images/login-eclipse.png")}
-          className="absolute -top-6 -right-16 w-[360px] h-[360px] opacity-40"
-          resizeMode="contain"
-        />
-        {/* Opcional: segunda curva para reforçar o arco, se existir o arquivo */}
-        <Image
-          source={require("../assets/images/login-eclipse-2.png")}
-          className="absolute top-10 -right-24 w-[300px] h-[260px] opacity-25"
-          resizeMode="stretch"
-        />
+        {Platform.OS !== 'web' && (
+          <>
+            <Image
+              source={require("../assets/images/login-eclipse.png")}
+              className="absolute -top-6 -right-16 w-[360px] h-[360px] opacity-40"
+              resizeMode="contain"
+            />
+            {/* Opcional: segunda curva para reforçar o arco, se existir o arquivo */}
+            <Image
+              source={require("../assets/images/login-eclipse-2.png")}
+              className="absolute top-10 -right-24 w-[300px] h-[260px] opacity-25"
+              resizeMode="stretch"
+            />
+          </>
+        )}
 
         {/* Conteúdo */}
-        <View className="flex-1 justify-center px-6 pt-6 pb-20">
+        <View className={Platform.OS === 'web' ? "flex-1 items-center justify-center px-6 py-12" : "flex-1 justify-center px-6 pt-6 pb-20"}>
+          <View className={Platform.OS === 'web' ? "w-full max-w-[480px] mx-auto" : ""}>
           {/* Logo/Marca */}
           <View className="w-10 h-10 bg-white rounded-lg mb-4" />
 
@@ -170,12 +175,22 @@ function LoginPage() {
           </View>
 
           {/* Termos e Privacidade */}
-          <Text className="text-[#6B6B72] text-[11px] text-center absolute bottom-8 left-6 right-6">
-            Ao continuar, você concorda com nossos
-            <Text className="text-[#61C0E2]"> Termos de Serviço</Text>
-            <Text> e </Text>
-            <Text className="text-[#61C0E2]">Política de Privacidade</Text>
-          </Text>
+          {Platform.OS === 'web' ? (
+            <Text className="text-[#6B6B72] text-[11px] text-center mt-6">
+              Ao continuar, você concorda com nossos
+              <Text className="text-[#61C0E2]"> Termos de Serviço</Text>
+              <Text> e </Text>
+              <Text className="text-[#61C0E2]">Política de Privacidade</Text>
+            </Text>
+          ) : (
+            <Text className="text-[#6B6B72] text-[11px] text-center absolute bottom-8 left-6 right-6">
+              Ao continuar, você concorda com nossos
+              <Text className="text-[#61C0E2]"> Termos de Serviço</Text>
+              <Text> e </Text>
+              <Text className="text-[#61C0E2]">Política de Privacidade</Text>
+            </Text>
+          )}
+          </View>
         </View>
       </View>
       <View style={{ position: 'absolute', top: 12, right: 12 }}>
