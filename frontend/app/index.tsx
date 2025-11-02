@@ -7,6 +7,7 @@ import {
   Image,
   SafeAreaView,
 } from "react-native";
+import { Platform } from "react-native";
 import Sidebar from "@/components/sidebar";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect, useMemo, useCallback } from "react";
@@ -30,6 +31,7 @@ interface Reserva {
   nome_usuario: string;
   id_Laboratorio: number;
   numero_laboratorio: string;
+  descricao_laboratorio?: string;
   // campos opcionais para representar horário fixo como pseudo-reserva
   isFixo?: boolean;
   id_fixo?: number;
@@ -64,6 +66,7 @@ export default function Index() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [cargo, setCargo] = useState<string>("");
   const [fixos, setFixos] = useState<any[]>([]);
+  const [labs, setLabs] = useState<{ id_Laboratorio: number; numero: string; descricao: string }[]>([]);
 
   // Gera os próximos 7 dias (com YMD)
   const gerarSemanaAtual = () => {
@@ -92,19 +95,26 @@ export default function Index() {
         if (stored) {
           const u = JSON.parse(stored);
           setMyUserId(u?.id_usuario ?? null);
-            setMyUserNome(u?.nome ?? "");
-            if (u?.cargo) setCargo(u.cargo);
+          setMyUserNome(u?.nome ?? "");
+          if (u?.cargo) setCargo(u.cargo);
         }
       } catch {}
       try {
-        const [reservasRes, fixosRes] = await Promise.all([
+        const [reservasRes, fixosRes, labsRes] = await Promise.all([
           api.get<Reserva[]>("/agendamentos/all"),
           api.get<any[]>("/horarios-fixos/"),
+          api.get<any[]>("/labs/all"),
         ]);
-        setReservas(reservasRes.data as any);
+        setLabs(Array.isArray(labsRes.data) ? labsRes.data : []);
+        // Preenche descricao_laboratorio nas reservas normais
+        const reservasComDescricao = (reservasRes.data as any[]).map(r => {
+          const lab = labsRes.data.find((l: any) => l.id_Laboratorio === r.id_Laboratorio);
+          return { ...r, descricao_laboratorio: lab ? lab.descricao : r.numero_laboratorio };
+        });
+        setReservas(reservasComDescricao);
         setFixos(Array.isArray(fixosRes.data) ? fixosRes.data : []);
       } catch (e) {
-        console.log("Falha ao carregar reservas/fixos", e);
+        console.log("Falha ao carregar reservas/fixos/labs", e);
       }
       // fallback para cargo via /auth/me
       try {
@@ -118,7 +128,7 @@ export default function Index() {
   useEffect(() => {
     const semanaAtual = gerarSemanaAtual();
     setSemana(semanaAtual);
-    setDiaSelecionado(semanaAtual[0].ymd); // seleciona hoje por padrão
+    setDiaSelecionado(semanaAtual[0].ymd); 
   }, []);
 
   const isAuxCoord = useMemo(() => cargo === 'Coordenador' || cargo === 'Auxiliar_Docente' || /coordenador|auxiliar/i.test(cargo || ''), [cargo]);
@@ -146,11 +156,12 @@ export default function Index() {
       .filter(f => String(f.dia_semana).toLowerCase() === ds)
       .map(f => {
         const numeroLab = f.nome_laboratorio || f.numero_laboratorio || f.numero || '';
+        const lab = labs.find(l => l.id_Laboratorio === f.id_Laboratorio);
         return {
           id_Reserva: -300000 - Number(f.id_horario_fixo || 0),
           id_fixo: Number(f.id_horario_fixo || 0),
           isFixo: true,
-            horario: String(f.horario),
+          horario: String(f.horario),
           dia: diaSelecionado,
           justificativa: null,
           fk_aulas: null,
@@ -159,9 +170,10 @@ export default function Index() {
           nome_usuario: String(f.nome_usuario || ''),
           id_Laboratorio: Number(f.id_Laboratorio),
           numero_laboratorio: String(numeroLab),
+          descricao_laboratorio: lab ? lab.descricao : numeroLab,
         } as Reserva;
       });
-  }, [fixos, diaSelecionado, ymdToDiaSemana]);
+  }, [fixos, diaSelecionado, ymdToDiaSemana, labs]);
 
   // Remove fixos que colidem com reservas normais do mesmo lab+horario
   const agendamentosDoDiaAll = useMemo(() => {
@@ -184,7 +196,9 @@ export default function Index() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {Platform.OS !== 'web' && (
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      )}
 
       {/* Background Image */}
       <Image
@@ -193,12 +207,16 @@ export default function Index() {
       />
 
       {/* Conteúdo com Scroll */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 200 }} className="px-6 pt-12 mt-5">
+      <ScrollView contentContainerStyle={{ paddingBottom: Platform.OS === 'web' ? 60 : 200 }} className="px-6 pt-12 mt-5">
         {/* Header */}
         <View className="flex-row justify-between items-center mb-6">
-          <TouchableOpacity onPress={() => setSidebarOpen(true)}>
-            <Ionicons name="menu" size={28} color="white" />
-          </TouchableOpacity>
+          {Platform.OS !== 'web' ? (
+            <TouchableOpacity onPress={() => setSidebarOpen(true)}>
+              <Ionicons name="menu" size={28} color="white" />
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
 
           <View className="flex flex-row gap-4">
             <TouchableOpacity className="w-10 h-10 rounded-full bg-white items-center justify-center" onPress={() => router.push('/notificacoes')}>
@@ -264,7 +282,7 @@ export default function Index() {
         </View>
 
         {/* Cards de Aulas */}
-        <View className="mt-4">
+        <View className={Platform.OS === 'web' ? "mt-4 -mx-2 flex-row flex-wrap" : "mt-4"}>
           {listaAgendamentosRender.length === 0 ? (
             <Text className="text-white/70">Nenhum agendamento para este dia.</Text>
           ) : (
@@ -275,24 +293,27 @@ export default function Index() {
               const start = (a.horario || "").slice(0, 5);
               const end = start ? addMinutesHHmm(start, 50) : "";
               const horario = start && end ? `${start} - ${end}` : start;
-              const titulo = `Laboratório ${a.numero_laboratorio}`;
+              const titulo = (a.descricao_laboratorio && a.descricao_laboratorio.trim().length > 0)
+                ? a.descricao_laboratorio
+                : (a.numero_laboratorio || '').toString();
               const isFixo = !!a.isFixo;
               const tipo = isFixo ? 'Horário Fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : (a.justificativa || 'Reserva'));
               return (
-                <MeusAgendamentosCard
-                  key={a.id_Reserva}
-                  titulo={titulo}
-                  tipo={tipo}
-                  horario={horario}
-                />
+                <View key={a.id_Reserva} className={Platform.OS === 'web' ? "w-full lg:basis-1/2 xl:basis-1/3 px-2 mb-4" : "mb-3"}>
+                  <MeusAgendamentosCard
+                    titulo={titulo}
+                    tipo={tipo}
+                    horario={horario}
+                  />
+                </View>
               );
             })
           )}
         </View>
       </ScrollView>
 
-      {/* Navbar inferior fixa */}
-      <Nav active="home" />
+  {/* Navbar inferior fixa (mobile only) */}
+  <Nav active="home" />
 
       <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
         <ConnectionBadge />
