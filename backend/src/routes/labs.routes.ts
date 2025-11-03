@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getAllLabs, createLab, deleteLab } from "../controllers/labs.controller";
+import { getAllLabs, createLab, deleteLab, updateLab } from "../controllers/labs.controller";
 import { authRequired, requireRole } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -53,6 +53,35 @@ router.delete('/:id', authRequired, requireRole('Auxiliar_Docente'), async (req,
             return res.status(400).json({ error: error.message });
         }
         res.status(500).json({ error: 'Erro interno ao remover laboratório' });
+    }
+});
+
+
+// Atualizar laboratório
+router.patch('/:id', authRequired, requireRole('Auxiliar_Docente'), async (req, res) => {
+    try {
+        const id = Number(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ error: 'ID inválido' });
+        }
+        const { numero, descricao } = req.body || {};
+        const updated = await updateLab(id, { numero, descricao });
+        res.json(updated);
+    } catch (error: any) {
+        if (error?.code === 'LAB_NOT_FOUND') {
+            return res.status(404).json({ error: 'Não encontrado', message: error.message });
+        }
+        if (error?.code === 'LAB_DUP') {
+            return res.status(409).json({ error: 'Duplicado', message: error.message });
+        }
+        if (error?.code === 'LAB_INVALID') {
+            return res.status(400).json({ error: 'Requisição inválida', message: error.message });
+        }
+        console.error('Erro ao atualizar laboratório:', error);
+        if (error instanceof Error) {
+            return res.status(400).json({ error: error.message });
+        }
+        res.status(500).json({ error: 'Erro interno ao atualizar laboratório' });
     }
 });
 

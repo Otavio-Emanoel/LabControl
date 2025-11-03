@@ -222,4 +222,16 @@ Geração automática:
   - 404 se não encontrado.
   - 409 se em uso.
 
+**PATCH /labs/:id**
+- Atualiza dados do laboratório (parciais).
+- Body (qualquer combinação): `{ numero?, descricao? }`
+- Regras:
+  - `numero`, quando enviado, é obrigatório e único (case-insensitive) entre os laboratórios.
+  - Necessário token de `Auxiliar_Docente`.
+- Retornos:
+  - 200 com o laboratório atualizado `{ id_Laboratorio, numero, descricao }`
+  - 400 requisição inválida
+  - 404 não encontrado
+  - 409 duplicado
+
 > Obs.: Acesso às rotas de criação e remoção restrito ao cargo `Auxiliar_Docente`.

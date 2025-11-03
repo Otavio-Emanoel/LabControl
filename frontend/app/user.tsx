@@ -185,6 +185,19 @@ export default function ProfileScreen() {
 
             {isAux && (
               <TouchableOpacity
+                onPress={() => router.push('/gerenciar-labs' as any)}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+              >
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ionicons name="build-outline" size={18} color="#93C5FD" />
+                </View>
+                <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Gerenciar laboratórios</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            )}
+
+            {isAux && (
+              <TouchableOpacity
                 onPress={() => router.push('/adicionar-curso' as any)}
                 style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
