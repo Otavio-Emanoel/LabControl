@@ -20,6 +20,7 @@ const cargos = ['Professor', 'Auxiliar_Docente', 'Coordenador'];
 export default function UsuariosScreen() {
   useAuthGuard();
   const router = useRouter();
+  const isWeb = Platform.OS === 'web';
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [filtered, setFiltered] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(false);
@@ -126,26 +127,42 @@ export default function UsuariosScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 30 : 10 }}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={{ color: 'white', fontSize: 20, fontWeight: '700', marginLeft: 8 }}>Usuários</Text>
-        <View style={{ marginLeft: 'auto' }}><ConnectionBadge /></View>
+      {/* Badge de conexão no canto superior (web + mobile) */}
+      <View style={{ position: 'absolute', top: 12, right: isWeb ? 20 : 12, zIndex: 50 }}>
+        <ConnectionBadge />
       </View>
 
-      <View style={{ padding: 16 }}>
-        <View style={{ flexDirection: 'row', backgroundColor: '#111827', borderRadius: 12, paddingHorizontal: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1F2937' }}>
-          <Ionicons name="search" size={18} color="#6B7280" />
-            <TextInput
-              value={q}
-              onChangeText={setQ}
-              placeholder="Buscar por nome, email ou cargo"
-              placeholderTextColor="#6B7280"
-              style={{ flex: 1, color: 'white', padding: 10 }}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={carregar}>
-              <Ionicons name="refresh" size={20} color="#93C5FD" />
-            </TouchableOpacity>
+      {/* Header */}
+      <View
+        style={{
+          width: '100%',
+          maxWidth: isWeb ? 1200 : undefined,
+          alignSelf: 'center',
+          paddingHorizontal: isWeb ? 24 : 16,
+          paddingTop: Platform.OS === 'android' ? 30 : 12,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <BackButton onPress={() => router.back()} />
+          <Text style={{ color: 'white', fontSize: isWeb ? 22 : 20, fontWeight: '700', marginLeft: 8 }}>Usuários</Text>
+        </View>
+
+        {/* Busca */}
+        <View style={{ marginTop: 16 }}>
+          <View style={{ flexDirection: 'row', backgroundColor: '#111827', borderRadius: 12, paddingHorizontal: 12, alignItems: 'center', borderWidth: 1, borderColor: '#1F2937' }}>
+            <Ionicons name="search" size={18} color="#6B7280" />
+              <TextInput
+                value={q}
+                onChangeText={setQ}
+                placeholder="Buscar por nome, email ou cargo"
+                placeholderTextColor="#6B7280"
+                style={{ flex: 1, color: 'white', padding: 10 }}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={carregar}>
+                <Ionicons name="refresh" size={20} color="#93C5FD" />
+              </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -154,22 +171,38 @@ export default function UsuariosScreen() {
           <ActivityIndicator color="#3B82F6" size="large" />
         </View>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => String(item.id_usuario)}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 140 }}
-          renderItem={renderItem}
-          ListEmptyComponent={() => (
-            <View style={{ padding: 32, alignItems: 'center' }}>
-              <Text style={{ color: '#6B7280' }}>Nenhum usuário encontrado.</Text>
-            </View>
-          )}
-        />
+        <View
+          style={{
+            flex: 1,
+            width: '100%',
+            maxWidth: isWeb ? 1200 : undefined,
+            alignSelf: 'center',
+            paddingHorizontal: isWeb ? 24 : 16,
+          }}
+        >
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => String(item.id_usuario)}
+            contentContainerStyle={{ paddingBottom: 140, paddingTop: 12 }}
+            renderItem={(info) => (
+              <View style={{ width: isWeb ? 560 : '100%' }}>
+                {renderItem(info as any)}
+              </View>
+            )}
+            numColumns={isWeb ? 2 : 1}
+            columnWrapperStyle={isWeb ? { justifyContent: 'space-between', gap: 12 } : undefined}
+            ListEmptyComponent={() => (
+              <View style={{ padding: 32, alignItems: 'center' }}>
+                <Text style={{ color: '#6B7280' }}>Nenhum usuário encontrado.</Text>
+              </View>
+            )}
+          />
+        </View>
       )}
 
       <Modal animationType="slide" transparent visible={modalVisible} onRequestClose={fecharModal}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: '#0B1220', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1F2937' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 20, alignItems: 'center' }}>
+          <View style={{ width: '92%', maxWidth: 640, backgroundColor: '#0B1220', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1F2937' }}>
             <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Editar Usuário</Text>
             <Text style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 6 }}>Nome</Text>
             <TextInput value={formNome} onChangeText={setFormNome} style={{ backgroundColor: '#111827', borderRadius: 10, padding: 10, color: 'white', marginBottom: 12, borderWidth: 1, borderColor: '#1F2937' }} />
