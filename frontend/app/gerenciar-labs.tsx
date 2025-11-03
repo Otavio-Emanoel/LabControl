@@ -125,35 +125,52 @@ export default function GerenciarLabsScreen() {
   };
 
   const remover = (lab: Lab) => {
+    const doRemove = async () => {
+      try {
+        setSaving(true);
+        await api.delete(`/labs/${lab.id_Laboratorio}`);
+        await carregar();
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 409) {
+          if (Platform.OS === 'web') {
+            // Usa diálogo nativo do browser no web
+            globalThis.alert?.(err?.response?.data?.message || 'Este laboratório possui vínculos e não pode ser removido.');
+          } else {
+            Alert.alert('Em uso', err?.response?.data?.message || 'Este laboratório possui vínculos e não pode ser removido.');
+          }
+        } else if (status === 404) {
+          Platform.OS === 'web'
+            ? globalThis.alert?.('Laboratório não existe mais.')
+            : Alert.alert('Não encontrado', 'Laboratório não existe mais.');
+        } else {
+          Platform.OS === 'web'
+            ? globalThis.alert?.('Falha ao remover laboratório.')
+            : Alert.alert('Erro', 'Falha ao remover laboratório.');
+        }
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const ok = typeof globalThis.confirm === 'function'
+        ? globalThis.confirm(`Remover o laboratório "${lab.numero}"?`)
+        : true;
+      if (ok) doRemove();
+      return;
+    }
+
     Alert.alert('Confirmar', `Remover o laboratório "${lab.numero}"?`, [
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Remover', style: 'destructive', onPress: async () => {
-          try {
-            setSaving(true);
-            await api.delete(`/labs/${lab.id_Laboratorio}`);
-            await carregar();
-          } catch (err: any) {
-            const status = err?.response?.status;
-            if (status === 409) {
-              Alert.alert('Em uso', err?.response?.data?.message || 'Este laboratório possui vínculos e não pode ser removido.');
-            } else if (status === 404) {
-              Alert.alert('Não encontrado', 'Laboratório não existe mais.');
-            } else {
-              Alert.alert('Erro', 'Falha ao remover laboratório.');
-            }
-          } finally {
-            setSaving(false);
-          }
-        }
-      }
+      { text: 'Remover', style: 'destructive', onPress: doRemove }
     ]);
   };
 
   const renderItem = ({ item }: { item: Lab }) => (
     <View style={{ width: isWeb ? 560 : '100%' }}>
       <View style={{ padding: 14, backgroundColor: '#111827', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#1F2937' }}>
-        <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Laboratório {item.numero}</Text>
+        <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>{item.numero}</Text>
         {!!item.descricao && <Text style={{ color: '#9CA3AF', marginTop: 4 }}>{item.descricao}</Text>}
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, justifyContent: 'flex-end' }}>
           <TouchableOpacity onPress={() => openEdit(item)} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#0B1220', borderWidth: 1, borderColor: '#1F2937' }}>
