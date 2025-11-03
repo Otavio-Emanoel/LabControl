@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput, Alert, SafeAreaView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
@@ -108,7 +108,7 @@ export default function AgendamentosDiaPage() {
   const [exporting, setExporting] = useState(false);
   const [renderCapture, setRenderCapture] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const [confirmLab, setConfirmLab] = useState<{ id: number; numero: string } | null>(null);
+  const [confirmLab, setConfirmLab] = useState<{ id: number } | null>(null);
 
   // Novos estados para interação com reservas
   const [cargo, setCargo] = useState<string>('');
@@ -119,6 +119,13 @@ export default function AgendamentosDiaPage() {
   const [editJustText, setEditJustText] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const isWeb = Platform.OS === 'web';
+  const TIME_W = isWeb ? 120 : 100;
+  const COL_W = isWeb ? 200 : 152;
+  const HEADER_H = isWeb ? 56 : 48;
+  const ROW_PAD_V = isWeb ? 16 : 14;
+  const FONT_LAB = isWeb ? 14 : 13;
 
   const visibleTableRef = useRef<View>(null);
   const captureTableRef = useRef<View>(null);
@@ -259,8 +266,8 @@ export default function AgendamentosDiaPage() {
     }
   }, []);
 
-  const askSchedule = useCallback((labId: number, numero: string) => {
-    setConfirmLab({ id: labId, numero });
+  const askSchedule = useCallback((labId: number) => {
+    setConfirmLab({ id: labId });
     setConfirmVisible(true);
   }, []);
 
@@ -360,18 +367,30 @@ export default function AgendamentosDiaPage() {
     }
   }, [selectedRes, editJustText, load]);
 
+  // Wrapper rolável no web para permitir scroll da página inteira, mantendo mobile como está
+  const Wrapper: any = isWeb ? ScrollView : View;
+  const wrapperProps: any = isWeb
+    ? { style: { flex: 1, backgroundColor: 'black', paddingTop: 8 }, contentContainerStyle: { paddingBottom: 24 } }
+    : { style: { flex: 1, backgroundColor: 'black', paddingTop: 16 } };
+
+  // Formata nome do lab no modal: "Laboratório X" (extrai número mesmo se vier como "lab2")
+  const selectedLab = useMemo(() => {
+    if (!confirmLab) return null as Lab | null;
+    return labs.find((l) => l.id_Laboratorio === confirmLab.id) || null;
+  }, [labs, confirmLab]);
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-      <View style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 50 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'black'}}>
+      <View style={{ position: 'absolute', zIndex: 50, right: isWeb ? 50 : 12, top: isWeb ? 12 : undefined, bottom: isWeb ? undefined : 12 }}>
         <ConnectionBadge />
       </View>
-      <View style={{ flex: 1, backgroundColor: 'black', paddingTop: 16 }}>
+      <Wrapper {...wrapperProps}>
         {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: isWeb ? 0 : 16, paddingTop: 16, paddingBottom: 8 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={{ color: 'white', fontSize: 18, fontWeight: '700', marginLeft: 8, flex: 1 }}>
+          <Text style={{ color: 'white', fontSize: isWeb ? 22 : 18, fontWeight: '700', marginLeft: 8, flex: 1 }}>
             Agendamentos de {weekday && `${weekday}, `}{ymd}
           </Text>
           <TouchableOpacity onPress={exportToPng} disabled={exporting} style={{ padding: 8, opacity: exporting ? 0.6 : 1 }}>
@@ -394,22 +413,22 @@ export default function AgendamentosDiaPage() {
         ) : null}
 
         {/* Container da tabela (visível) */}
-        <View ref={visibleTableRef} style={{ marginTop: 12, marginHorizontal: 12, backgroundColor: '#0B0F19', borderRadius: 12, borderWidth: 1, borderColor: '#111827', overflow: 'hidden' }}>
+        <View ref={visibleTableRef} style={{ marginTop: isWeb ? 16 : 12, marginHorizontal: isWeb ? 0 : 12, backgroundColor: '#0B0F19', borderRadius: 12, borderWidth: 1, borderColor: '#111827', overflow: 'hidden' }}>
           {/* Cabeçalho + corpo enrolados horizontalmente juntos */}
           <ScrollView horizontal nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator contentContainerStyle={{ paddingBottom: 12 }}>
             <View>
               {/* Cabeçalho: primeira célula vazia (horários) + colunas de laboratórios */}
               <View style={{ flexDirection: 'row', backgroundColor: '#0F172A', borderBottomWidth: 1, borderBottomColor: '#111827' }}>
                 {/* canto vazio */}
-                <View style={{ width: 100, height: 48, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Horário</Text>
+                <View style={{ width: TIME_W, height: HEADER_H, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: '#9CA3AF', fontSize: isWeb ? 13 : 12 }}>Horário</Text>
                 </View>
                 {labs.map((lab) => (
                   <View
                     key={lab.id_Laboratorio}
-                    style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}
+                    style={{ width: COL_W, height: HEADER_H, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}
                   >
-                    <Text style={{ color: 'white', fontWeight: '700' }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
+                    <Text style={{ color: 'white', fontWeight: '700', fontSize: FONT_LAB }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
                   </View>
                 ))}
               </View>
@@ -419,7 +438,7 @@ export default function AgendamentosDiaPage() {
                 {SLOTS.map((slot, idx) => (
                   <View key={slot.key} style={{ flexDirection: 'row' }}>
                     {/* Coluna de horários */}
-                    <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
+                    <View style={{ width: TIME_W, paddingVertical: ROW_PAD_V, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
                       <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
                       <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
                     </View>
@@ -430,32 +449,32 @@ export default function AgendamentosDiaPage() {
                       const r = cellMap.get(key);
                       const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
                       return (
-                        <View key={key} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
+                        <View key={key} style={{ width: COL_W, padding: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
                           {r ? (
                             <TouchableOpacity onPress={() => openReserva(r)} activeOpacity={0.8}>
-                              <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
+                              <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                   <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
                                     <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
                                   </View>
-                                  <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                                  <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: isWeb ? 13 : 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
                                   {r.isFixo ? (
                                     <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
                                       <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
                                     </View>
                                   ) : null}
                                 </View>
-                                <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
+                                <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: isWeb ? 12 : 12 }} numberOfLines={2}>
                                   {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
                                 </Text>
                               </View>
                             </TouchableOpacity>
                           ) : (
                             <TouchableOpacity
-                              onPress={() => askSchedule(lab.id_Laboratorio, lab.numero)}
-                              style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}
+                              onPress={() => askSchedule(lab.id_Laboratorio)}
+                              style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 }}
                             >
-                              <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
+                              <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: isWeb ? 12 : 12 }}>Livre</Text>
                             </TouchableOpacity>
                           )}
                         </View>
@@ -479,14 +498,13 @@ export default function AgendamentosDiaPage() {
             </View>
           </View>
         </View>
-
         {/* Modal de confirmação */}
         <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
             <View style={{ width: '92%', maxWidth: 420, backgroundColor: '#111827', borderRadius: 14, padding: 16 }}>
               <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>Agendar neste dia?</Text>
               <Text style={{ color: '#9CA3AF', marginTop: 6 }}>
-                {`Você deseja agendar no dia ${ymd} para o Lab ${confirmLab?.numero ?? ''}?`}
+                {`Você deseja agendar no dia ${ymd} para o ${selectedLab?.descricao?.trim() || `Laboratório ${selectedLab?.numero ?? ''}` }?`}
               </Text>
               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 }}>
                 <TouchableOpacity onPress={() => setConfirmVisible(false)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#374151' }}>
@@ -577,19 +595,19 @@ export default function AgendamentosDiaPage() {
           >
             {/* Cabeçalho */}
             <View style={{ flexDirection: 'row', backgroundColor: '#0F172A', borderBottomWidth: 1, borderBottomColor: '#111827' }}>
-              <View style={{ width: 100, height: 48, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#9CA3AF', fontSize: 12 }}>Horário</Text>
+              <View style={{ width: TIME_W, height: HEADER_H, borderRightWidth: 1, borderRightColor: '#111827', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#9CA3AF', fontSize: isWeb ? 13 : 12 }}>Horário</Text>
               </View>
               {labs.map((lab) => (
-                <View key={`cap-${lab.id_Laboratorio}`} style={{ width: 152, height: 48, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}>
-                  <Text style={{ color: 'white', fontWeight: '700' }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
+                <View key={`cap-${lab.id_Laboratorio}`} style={{ width: COL_W, height: HEADER_H, alignItems: 'center', justifyContent: 'center', borderRightWidth: 1, borderRightColor: '#111827' }}>
+                  <Text style={{ color: 'white', fontWeight: '700', fontSize: FONT_LAB }}>{lab.descricao?.trim() || `Lab ${lab.numero}`}</Text>
                 </View>
               ))}
             </View>
             {/* Corpo completo sem scroll */}
             {SLOTS.map((slot, idx) => (
               <View key={`cap-row-${slot.key}`} style={{ flexDirection: 'row' }}>
-                <View style={{ width: 100, paddingVertical: 14, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
+                <View style={{ width: TIME_W, paddingVertical: ROW_PAD_V, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: idx % 2 ? '#0C1220' : '#0F172A' }}>
                   <Text style={{ color: '#E5E7EB', fontWeight: '700' }}>{slot.start}</Text>
                   <Text style={{ color: '#9CA3AF', fontSize: 12 }}>{slot.end}</Text>
                 </View>
@@ -598,27 +616,27 @@ export default function AgendamentosDiaPage() {
                   const r = cellMap.get(key);
                   const rowBg = idx % 2 ? '#0C1220' : '#0F172A';
                   return (
-                    <View key={`cap-cell-${key}`} style={{ width: 152, padding: 8, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
+                    <View key={`cap-cell-${key}`} style={{ width: COL_W, padding: 10, borderRightWidth: 1, borderRightColor: '#111827', borderBottomWidth: 1, borderBottomColor: '#111827', backgroundColor: rowBg }}>
                       {r ? (
-                        <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 8 }}>
+                        <View style={{ backgroundColor: '#111827', borderWidth: 1, borderColor: '#1F2937', borderRadius: 10, padding: 10 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#1C4AED', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
                               <Text style={{ color: 'white', fontWeight: '700', fontSize: 10 }}>{getInitials(r.nome_usuario)}</Text>
                             </View>
-                            <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
+                            <Text style={{ color: 'white', fontWeight: '700', flexShrink: 1, fontSize: isWeb ? 13 : 12 }} numberOfLines={1}>{r.nome_usuario}</Text>
                             {r.isFixo ? (
                               <View style={{ marginLeft: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: '#115e59' }}>
                                 <Text style={{ color: '#34D399', fontSize: 10, fontWeight: '800' }}>FIXO</Text>
                               </View>
                             ) : null}
                           </View>
-                          <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: 12 }} numberOfLines={2}>
+                          <Text style={{ color: '#9CA3AF', marginTop: 4, fontSize: isWeb ? 12 : 12 }} numberOfLines={2}>
                             {r.isFixo ? 'Horário fixo' : (r.nome_disciplina ? `Aula de ${r.nome_disciplina}` : r.justificativa || 'Agendamento')}
                           </Text>
                         </View>
                       ) : (
-                        <View style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 }}>
-                          <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: 12 }}>Livre</Text>
+                        <View style={{ alignSelf: 'flex-start', backgroundColor: '#052e1a', borderWidth: 1, borderColor: '#16A34A', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999 }}>
+                          <Text style={{ color: '#22C55E', fontWeight: '700', fontSize: isWeb ? 12 : 12 }}>Livre</Text>
                         </View>
                       )}
                     </View>
@@ -628,7 +646,7 @@ export default function AgendamentosDiaPage() {
             ))}
           </View>
         )}
-      </View>
+      </Wrapper>
     </SafeAreaView>
   );
 }
