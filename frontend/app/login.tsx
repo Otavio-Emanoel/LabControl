@@ -136,19 +136,6 @@ function LoginPage() {
               <Text className="text-red-400 mt-3 ml-1">{errorMsg}</Text>
             ) : null}
 
-            {/* Lembre-se de mim */}
-            <View className="flex-row items-center mt-3">
-              <TouchableOpacity
-                className="w-5 h-5 rounded border border-[#5E5E66] items-center justify-center"
-                onPress={() => setRemember((v) => !v)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: remember }}
-              >
-                {remember ? <Ionicons name="checkmark" size={16} color="#070E98" /> : null}
-              </TouchableOpacity>
-              <Text className="text-[#9A9AA1] ml-2">Lembre-se de mim</Text>
-            </View>
-
             {/* Botão Continue */}
             <TouchableOpacity
               className="bg-[#0A1F96] rounded-xl items-center justify-center p-3 mt-5"
@@ -174,7 +161,7 @@ function LoginPage() {
                 <Text className="text-[#61C0E2]"> Termos de Serviço</Text>
               </Text>
             ) : (
-              <Text className="text-[#6B6B72] text-[11px] text-center absolute bottom-8 left-6 right-6">
+              <Text className="text-[#6B6B72] text-[11px] text-center mt-5">
                 Este aplicativo foi desenvolvido para fins educacionais. Ao continuar, você concorda com nossos
                 <Text className="text-[#61C0E2]"> Termos de Serviço</Text>
               </Text>
