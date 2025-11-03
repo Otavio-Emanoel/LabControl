@@ -77,7 +77,13 @@ function LoginPage() {
         <View className={Platform.OS === 'web' ? "flex-1 items-center justify-center px-6 py-12" : "flex-1 justify-center px-6 pt-6 pb-20"}>
           <View className={Platform.OS === 'web' ? "w-full max-w-[480px] mx-auto" : ""}>
             {/* Logo/Marca */}
-            <View className="w-10 h-10 bg-white rounded-lg mb-4" />
+            <View className="w-12 h-12 rounded-lg mb-4 items-center justify-center p-1 overflow-hidden">
+              <Image
+                source={require("../assets/images/icon.png")}
+                style={{ width: 120, height: 120 }}
+                resizeMode="contain"
+              />
+            </View>
 
             {/* Títulos */}
             <Text className="text-white font-bold text-3xl leading-tight">Bem vindo</Text>
