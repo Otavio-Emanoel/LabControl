@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, ScrollView, Image, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert, SafeAreaView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getApiBaseUrl } from '@/lib/api';
@@ -109,6 +109,7 @@ export default function AgendamentoPage() {
   const [editJustificativa, setEditJustificativa] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const isWeb = Platform.OS === 'web';
 
   useAuthGuard();
 
@@ -383,13 +384,14 @@ export default function AgendamentoPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+      <View style={{ position: 'absolute', top: 12, right: isWeb ? 50 : 12, zIndex: 50 }}>
         <ConnectionBadge />
       </View>
       <View className='flex-1 bg-black'>
         <ScrollView className='flex-1' contentContainerStyle={{ paddingBottom: 104 }}>
+          <View style={{ alignSelf: 'center', width: '100%', maxWidth: isWeb ? 1200 : undefined }}>
           {/* background image */}
-          <View style={{ width: '100%', height: '25%', position: 'absolute', top: 0, left: 0 }}>
+          <View style={{ width: '100%', height: isWeb ? 220 : '25%', position: 'absolute', top: 0, left: 0 }}>
             <Image source={require('../assets/images/bg2.jpg')} style={{ width: '100%', height: '100%' }} />
           </View>
 
@@ -410,12 +412,12 @@ export default function AgendamentoPage() {
           </View> */}
 
           {/* Calendário */}
-          <View style={{ marginTop: 90, paddingHorizontal: 16 }}>
+          <View style={{ marginTop: isWeb ? 140 : 90, paddingHorizontal: isWeb ? 24 : 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <TouchableOpacity onPress={goPrevMonth}>
                 <Ionicons name="chevron-back" size={20} color="#fff" />
               </TouchableOpacity>
-              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', textTransform: 'capitalize' }}>{monthLabel}</Text>
+              <Text style={{ color: 'white', fontSize: isWeb ? 18 : 16, fontWeight: '600', textTransform: 'capitalize' }}>{monthLabel}</Text>
               <TouchableOpacity onPress={goNextMonth}>
                 <Ionicons name="chevron-forward" size={20} color="#fff" />
               </TouchableOpacity>
@@ -465,7 +467,7 @@ export default function AgendamentoPage() {
           </View>
 
           {/* Lista de Laboratórios */}
-          <View style={{ marginTop: 16, paddingHorizontal: 16 }}>
+          <View style={{ marginTop: 16, paddingHorizontal: isWeb ? 24 : 16, flexDirection: isWeb ? 'row' : 'column', flexWrap: isWeb ? 'wrap' : 'nowrap', justifyContent: isWeb ? 'space-between' : 'flex-start' }}>
             {errorMsg ? (
               <Text className='text-red-400 text-center mt-4'>{errorMsg}</Text>
             ) : null}
@@ -473,7 +475,7 @@ export default function AgendamentoPage() {
               const count = reservasDoDia.filter((r) => r.id_Laboratorio === lab.id_Laboratorio).length;
               const percent = Math.round((count / maxOcupacao) * 100);
               return (
-                <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                <View key={lab.id_Laboratorio} style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 16, marginBottom: 12, width: isWeb ? 560 : '100%', alignSelf: isWeb ? 'flex-start' : 'auto', marginHorizontal: isWeb ? 8 : 0 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View>
                       <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>{lab.descricao}</Text>
@@ -493,7 +495,7 @@ export default function AgendamentoPage() {
           </View>
 
           {/* Lista de Agendamentos (dinâmico para cargo) */}
-          <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
+          <View style={{ paddingHorizontal: isWeb ? 24 : 16, marginTop: 8, marginBottom: 16, flexDirection: isWeb ? 'row' : 'column', flexWrap: isWeb ? 'wrap' : 'nowrap', justifyContent: isWeb ? 'space-between' : 'flex-start' }}>
             <Text style={{ color: 'white', fontWeight: '600', fontSize: 16, marginBottom: 8 }}>
               {isAuxCoord ? 'Agendamentos do Dia' : 'Meus Agendamentos'}
             </Text>
@@ -512,59 +514,59 @@ export default function AgendamentoPage() {
                   return a.id_Laboratorio - b.id_Laboratorio;
                 })
                 .map((a, idx) => {
-                const start = (a.horario || '').slice(0, 5);
-                const end = start ? addMinutesHHmm(start, 50) : '';
-                const timeRange = start && end ? `${start} - ${end}` : start ? `${start}` : '';
-                const gradients = [
-                  ['#1C4AED', '#7C3AED'],
-                  ['#2563EB', '#1C4AED'],
-                  ['#0EA5E9', '#2563EB'],
-                ] as const;
-                const colors = gradients[idx % gradients.length] as readonly [string, string];
-                const isFixo = !!a.isFixo;
-                const canDelete = isFixo ? isAuxCoord : true;
-                const labInfo = labById.get(a.id_Laboratorio);
-                const labLabel = (labInfo?.descricao && labInfo.descricao.trim().length > 0)
-                  ? labInfo.descricao
-                  : (labInfo?.numero || a.numero_laboratorio || `Lab ${a.id_Laboratorio}`);
-                return (
-                  <LinearGradient
-                    key={`${a.id_Reserva}`}
-                    colors={colors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={{ borderRadius: 16, padding: 16, marginBottom: 12 }}
-                  >
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flex: 1, paddingRight: 12 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>{labLabel}</Text>
-                          {isFixo ? (
-                            <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-                              <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>
-                            </View>
-                          ) : null}
+                  const start = (a.horario || '').slice(0, 5);
+                  const end = start ? addMinutesHHmm(start, 50) : '';
+                  const timeRange = start && end ? `${start} - ${end}` : start ? `${start}` : '';
+                  const gradients = [
+                    ['#1C4AED', '#7C3AED'],
+                    ['#2563EB', '#1C4AED'],
+                    ['#0EA5E9', '#2563EB'],
+                  ] as const;
+                  const colors = gradients[idx % gradients.length] as readonly [string, string];
+                  const isFixo = !!a.isFixo;
+                  const canDelete = isFixo ? isAuxCoord : true;
+                  const labInfo = labById.get(a.id_Laboratorio);
+                  const labLabel = (labInfo?.descricao && labInfo.descricao.trim().length > 0)
+                    ? labInfo.descricao
+                    : (labInfo?.numero || a.numero_laboratorio || `Lab ${a.id_Laboratorio}`);
+                  return (
+                    <LinearGradient
+                      key={`${a.id_Reserva}`}
+                      colors={colors}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={{ borderRadius: 16, padding: 16, marginBottom: 12, width: isWeb ? 560 : '100%', alignSelf: isWeb ? 'flex-start' : 'auto', marginHorizontal: isWeb ? 8 : 0 }}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <View style={{ flex: 1, paddingRight: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={{ color: 'white', fontWeight: '700', fontSize: 16 }}>{labLabel}</Text>
+                            {isFixo ? (
+                              <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
+                                <Text style={{ color: '#34D399', fontWeight: '800', fontSize: 10 }}>FIXO</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <Text style={{ color: '#E5E7EB', marginTop: 4 }} numberOfLines={2}>
+                            {isFixo ? 'Horário fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento')}
+                          </Text>
                         </View>
-                        <Text style={{ color: '#E5E7EB', marginTop: 4 }} numberOfLines={2}>
-                          {isFixo ? 'Horário fixo' : (a.nome_disciplina ? `Aula de ${a.nome_disciplina}` : a.justificativa ? a.justificativa : 'Agendamento')}
-                        </Text>
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity onPress={() => openEdit(a)} disabled={isFixo} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: isFixo ? 0.4 : 1 }}>
+                            <Ionicons name="create-outline" size={16} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity onPress={() => openDelete(a)} disabled={!canDelete} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: !canDelete ? 0.4 : 1 }}>
+                            <Ionicons name="trash-outline" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity onPress={() => openEdit(a)} disabled={isFixo} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: isFixo ? 0.4 : 1 }}>
-                          <Ionicons name="create-outline" size={16} color="#fff" />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => openDelete(a)} disabled={!canDelete} style={{ backgroundColor: '#ffffff22', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ffffff33', opacity: !canDelete ? 0.4 : 1 }}>
-                          <Ionicons name="trash-outline" size={16} color="#fff" />
-                        </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12 }}>
+                        <Ionicons name="time-outline" size={14} color="#fff" />
+                        <Text style={{ color: '#fff', marginLeft: 6 }}>{timeRange} {timeRange && 'h'}</Text>
                       </View>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 12 }}>
-                      <Ionicons name="time-outline" size={14} color="#fff" />
-                      <Text style={{ color: '#fff', marginLeft: 6 }}>{timeRange} {timeRange && 'h'}</Text>
-                    </View>
-                  </LinearGradient>
-                );
-              })
+                    </LinearGradient>
+                  );
+                })
             )}
           </View>
 
@@ -609,6 +611,7 @@ export default function AgendamentoPage() {
               </View>
             </View>
           </Modal>
+          </View>
         </ScrollView>
         <Nav active="agendamento" />
       </View>
