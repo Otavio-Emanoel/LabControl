@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ImageBackground, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ImageBackground, ScrollView, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Navbar from '../components/nav';
 import { useAuthGuard } from '@/hooks/useAuthGuard';
@@ -20,6 +20,7 @@ interface UserMe {
 export default function ProfileScreen() {
   useAuthGuard();
   const router = useRouter();
+  const isWeb = Platform.OS === 'web';
   const [nome, setNome] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [cargo, setCargo] = useState<string>('');
@@ -82,11 +83,19 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black' }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        <View
+          style={{
+            width: '100%',
+            maxWidth: isWeb ? 1200 : undefined,
+            alignSelf: 'center',
+            paddingHorizontal: isWeb ? 24 : 16,
+          }}
+        >
         {/* Header com imagem de fundo */}
         <ImageBackground
           source={require('../assets/images/home-background.jpg')}
-          style={{ height: 220, borderRadius: 20, overflow: 'hidden' }}
+          style={{ height: isWeb ? 260 : 220, borderRadius: 20, overflow: 'hidden' }}
           imageStyle={{ transform: [{ scale: 1.05 }] }}
         >
           <View style={{ position: 'absolute', inset: 0 as any, backgroundColor: 'rgba(0,0,0,0.45)' }} />
@@ -110,40 +119,58 @@ export default function ProfileScreen() {
         </ImageBackground>
 
         {/* Ações principais */}
-        <View style={{ marginTop: 18, gap: 12 }}>
+        <View style={{ marginTop: isWeb ? 24 : 18 }}>
           <Text style={{ color: '#9CA3AF', fontSize: 12, letterSpacing: 1 }}>AÇÕES</Text>
-
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+          <View
+            style={{
+              marginTop: 12,
+              gap: 12,
+              flexDirection: isWeb ? 'row' : 'column',
+              flexWrap: isWeb ? 'wrap' : 'nowrap',
+              justifyContent: isWeb ? 'space-between' : 'flex-start',
+            }}
           >
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-              <Ionicons name="key-outline" size={18} color="#93C5FD" />
-            </View>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Gerenciar senha</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Ionicons name="key-outline" size={18} color="#93C5FD" />
+              </View>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Gerenciar senha</Text>
+              <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.replace('/agendamento')}
-            style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
-          >
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-              <Ionicons name="calendar-outline" size={18} color="#93C5FD" />
-            </View>
-            <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Agendar laboratório</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.replace('/agendamento')}
+              style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <Ionicons name="calendar-outline" size={18} color="#93C5FD" />
+              </View>
+              <Text style={{ color: 'white', fontSize: 16, fontWeight: '600', flex: 1 }}>Agendar laboratório</Text>
+              <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Administração */}
         {(isAux || isCoord) && (
-          <View style={{ marginTop: 18, gap: 12 }}>
+          <View style={{ marginTop: isWeb ? 24 : 18 }}>
             <Text style={{ color: '#9CA3AF', fontSize: 12, letterSpacing: 1 }}>ADMINISTRAÇÃO</Text>
+            <View
+              style={{
+                marginTop: 12,
+                gap: 12,
+                flexDirection: isWeb ? 'row' : 'column',
+                flexWrap: isWeb ? 'wrap' : 'nowrap',
+                justifyContent: isWeb ? 'space-between' : 'flex-start',
+              }}
+            >
 
             {isAux && (
               <TouchableOpacity
                 onPress={() => router.push('/cadastro-usuario' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="person-add-outline" size={18} color="#93C5FD" />
@@ -156,7 +183,7 @@ export default function ProfileScreen() {
             {isAux && (
               <TouchableOpacity
                 onPress={() => router.push('/usuarios' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="people-circle-outline" size={18} color="#93C5FD" />
@@ -169,7 +196,7 @@ export default function ProfileScreen() {
             {isAux && (
               <TouchableOpacity
                 onPress={() => router.push('/adicionar-curso' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="library-outline" size={18} color="#93C5FD" />
@@ -182,7 +209,7 @@ export default function ProfileScreen() {
             {isAux && (
               <TouchableOpacity
                 onPress={() => router.push('/remover-curso' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="trash-outline" size={18} color="#F87171" />
@@ -195,7 +222,7 @@ export default function ProfileScreen() {
             {(isAux || isCoord) && (
               <TouchableOpacity
                 onPress={() => router.push('/adicionar-disciplina' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="book-outline" size={18} color="#93C5FD" />
@@ -208,7 +235,7 @@ export default function ProfileScreen() {
             {(isAux || isCoord) && (
               <TouchableOpacity
                 onPress={() => router.push('/remover-disciplina' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="trash-bin-outline" size={18} color="#F87171" />
@@ -221,7 +248,7 @@ export default function ProfileScreen() {
             {(isAux || isCoord) && (
               <TouchableOpacity
                 onPress={() => router.push('/atribuir-aula' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="people-outline" size={18} color="#93C5FD" />
@@ -234,7 +261,7 @@ export default function ProfileScreen() {
             {(isAux || isCoord) && (
               <TouchableOpacity
                 onPress={() => router.push('/tornar-fixo' as any)}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
+                style={{ width: isWeb ? 560 : '100%', flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#0B1220', borderRadius: 14, borderWidth: 1, borderColor: '#111827' }}
               >
                 <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons name="infinite-outline" size={18} color="#93C5FD" />
@@ -243,6 +270,7 @@ export default function ProfileScreen() {
                 <Ionicons name="chevron-forward" size={20} color="#6B7280" />
               </TouchableOpacity>
             )}
+            </View>
           </View>
         )}
 
@@ -256,9 +284,10 @@ export default function ProfileScreen() {
             <Text style={{ color: 'white', fontWeight: '800', marginLeft: 8 }}>Sair</Text>
           </TouchableOpacity>
         </View>
+        </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', top: 12, right: 12 }}>
+      <View style={{ position: 'absolute', top: 12, right: isWeb ? 20 : 12 }}>
         <ConnectionBadge />
       </View>
 
