@@ -121,6 +121,7 @@ export default function AgendarLabPage() {
   const params = useLocalSearchParams<{ labId?: string; date?: string }>();
   const labId = Number(params.labId);
   const date = (params.date as string) || new Date().toISOString().slice(0, 10);
+  const isWeb = Platform.OS === 'web';
 
   const [lab, setLab] = useState<Lab | null>(null);
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -442,68 +443,94 @@ export default function AgendarLabPage() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'black', paddingTop: Math.max(insets.top, 12) }}>
-      <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+      <View style={{ position: 'absolute', top: 12, right: isWeb ? 20 : 12, zIndex: 50 }}>
         <ConnectionBadge />
       </View>
 
       <ScrollView className="flex-1 bg-black" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) + 96 }}>
-        {/* Botão Voltar */}
-          <View style={{ paddingHorizontal: 16, paddingTop: 28, alignItems: 'flex-start' }}>
+        <View
+          style={{
+            width: '100%',
+            maxWidth: isWeb ? 1200 : undefined,
+            alignSelf: 'center',
+            paddingHorizontal: isWeb ? 24 : 16,
+          }}
+        >
+          {/* Botão Voltar */}
+          <View style={{ paddingTop: isWeb ? 36 : 28, alignItems: 'flex-start' }}>
             <BackButton to="/agendamento" variant='glass' size='md' style={{ minWidth: undefined }} />
           </View>
 
-        {/* Header do Lab */}
-        <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20, marginTop: 8 }}>{lab?.descricao ?? labId}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 4, borderColor: '#3B96E2' }} />
-            <Text style={{ color: '#9CA3AF', marginLeft: 10 }}>{usagePercent}% em uso</Text>
+          {/* Header do Lab */}
+          <View style={{ marginBottom: isWeb ? 16 : 8 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: isWeb ? 22 : 20, marginTop: 8 }}>
+              {lab?.descricao || (lab ? `Laboratório ${lab.numero}` : `Laboratório ${labId}`)}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, borderWidth: 4, borderColor: '#3B96E2' }} />
+              <Text style={{ color: '#9CA3AF', marginLeft: 10 }}>{usagePercent}% em uso</Text>
+            </View>
+            <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Dia {date}</Text>
+            {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
           </View>
-          <Text style={{ color: '#9CA3AF', marginTop: 4 }}>Dia {date}</Text>
-          {errorMsg ? <Text style={{ color: '#F87171', marginTop: 8 }}>{errorMsg}</Text> : null}
-        </View>
 
-        {/* Lista de slots */}
-        <View style={{ paddingHorizontal: 16, gap: 10 }}>
-          {SLOTS.map((s) => {
-            const reserved = reservedTimes.has(s.start);
-            const isFixed = fixedTimes.includes(s.start);
-            return (
-              <View key={s.key} style={{ backgroundColor: '#0F172A', borderRadius: 16, overflow: 'hidden' }}>
-                <View style={{ height: 8, backgroundColor: s.color, opacity: 0.9 }} />
-                <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: 'white', fontWeight: '600' }}>{s.title}</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                      <Ionicons name="time-outline" size={14} color="#9CA3AF" />
-                      <Text style={{ color: '#9CA3AF', marginLeft: 6 }}>{s.start} - {s.end}</Text>
+          {/* Lista de slots */}
+          <View
+            style={{
+              gap: 12,
+              flexDirection: isWeb ? 'row' : 'column',
+              flexWrap: isWeb ? 'wrap' : 'nowrap',
+              justifyContent: isWeb ? 'space-between' : 'flex-start',
+            }}
+          >
+            {SLOTS.map((s) => {
+              const reserved = reservedTimes.has(s.start);
+              const isFixed = fixedTimes.includes(s.start);
+              return (
+                <View
+                  key={s.key}
+                  style={{
+                    width: isWeb ? 560 : '100%',
+                    backgroundColor: '#0F172A',
+                    borderRadius: 16,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ height: 8, backgroundColor: s.color, opacity: 0.9 }} />
+                  <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: 'white', fontWeight: '600' }}>{s.title}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                        <Ionicons name="time-outline" size={14} color="#9CA3AF" />
+                        <Text style={{ color: '#9CA3AF', marginLeft: 6 }}>{s.start} - {s.end}</Text>
+                      </View>
                     </View>
-                  </View>
 
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ backgroundColor: reserved ? '#1F2937' : '#16A34A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
-                      <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? (isFixed ? 'Fixo' : 'Em uso') : 'Livre'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ backgroundColor: reserved ? '#1F2937' : '#16A34A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 }}>
+                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{reserved ? (isFixed ? 'Fixo' : 'Em uso') : 'Livre'}</Text>
+                      </View>
+                      <TouchableOpacity
+                        disabled={reserved || savingSlot === s.start}
+                        onPress={() => !reserved && openForm(s.start)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: reserved ? '#374151' : '#3B96E2',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: reserved || savingSlot === s.start ? 0.6 : 1,
+                        }}
+                      >
+                        <Ionicons name={reserved ? 'lock-closed' : 'add'} size={18} color={'white'} />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      disabled={reserved || savingSlot === s.start}
-                      onPress={() => !reserved && openForm(s.start)}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: reserved ? '#374151' : '#3B96E2',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: reserved || savingSlot === s.start ? 0.6 : 1,
-                      }}
-                    >
-                      <Ionicons name={reserved ? 'lock-closed' : 'add'} size={18} color={'white'} />
-                    </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
         {/* Formulário de agendamento */}
